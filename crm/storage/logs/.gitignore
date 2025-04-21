@@ -1,0 +1,10 @@
+/vendor
+/node_modules
+# .env
+*.key
+*.pem
+/storage/*.key
+/public/storage
+.env.backup
+*.log
+.DS_Store

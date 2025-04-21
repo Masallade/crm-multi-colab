@@ -1,0 +1,83 @@
+.dashboard-background {
+    margin-top: -8px !important;
+    background-image: url('/assets/images/dashboard_background.jpg') !important; /* Add the image URL here */
+    background-size: auto; /* Keeps the original size of 188x178 */
+    background-position: top left; /* Starts repeating from the top-left corner */
+    background-repeat: repeat; /* Repeats the image horizontally and vertically */
+}
+
+
+.sidebar-background {
+    background-image: url('/assets/images/sidebar_background.jpeg') !important; /* Image URL */
+    background-position: center; /* Center the image in the container */
+    background-size: cover; /* Scale the image to cover the entire container */
+    background-repeat: no-repeat; /* Prevent the image from repeating */
+}
+
+.sidebar-i{
+    color: #2575fc !important;
+}
+
+
+.dashboard-background {
+    margin-top: -8px !important;
+    background-image: url('/assets/images/dashboard_background.jpg') !important; /* Add the image URL here */
+    background-size: auto; /* Keeps the original size of 188x178 */
+    background-position: top left; /* Starts repeating from the top-left corner */
+    background-repeat: repeat; /* Repeats the image horizontally and vertically */
+}
+
+
+.sidebar-background {
+    background-image: url('/assets/images/sidebar_background.jpeg') !important; /* Image URL */
+    background-position: center; /* Center the image in the container */
+    background-size: cover; /* Scale the image to cover the entire container */
+    background-repeat: no-repeat; /* Prevent the image from repeating */
+}
+
+.sidebar-i{
+    color: #ffffff !important;
+}
+
+/* Keep icons in original color */
+.sidebar-i {
+    color: #2575fc !important;
+}
+/* Change only the selected (active) icon to white */
+.side-navbar .main-menu .side-menu li.active > a .sidebar-i {
+    color: #ffffff !important; /* Active icon turns white */
+}
+
+/* Active state styling */
+.side-navbar .main-menu .side-menu li.active > a {
+    color: #ffffff;
+    font-weight: 600;
+    background: linear-gradient(135deg, #2362c9 100%, #c2a5fc 0%); /* Lighter gradient */
+    border-radius: 8px;
+    padding: 12px 15px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0px 3px 8px rgba(160, 196, 255, 0.15);
+    position: relative;
+    transition: all 0.3s ease-in-out;
+}
+
+/* ❌ Removed underline effect */
+.side-navbar .main-menu .side-menu li.active > a span {
+    border-bottom: none;
+}
+
+
+
+/* Non-active items */
+.side-navbar .main-menu .side-menu li:not(.active) > a {
+    color: #444;
+    transition: all 0.3s ease-in-out;
+}
+
+.side-navbar .main-menu .side-menu li:not(.active) > a:hover {
+    color: #2575fc;
+    background: rgba(160, 196, 255, 0.07);
+    border-radius: 6px;
+    padding: 12px 15px;
+}
