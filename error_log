@@ -1,0 +1,93 @@
+[05-Feb-2025 11:03:38 UTC] PHP Warning:  Module "ssh2" is already loaded in Unknown on line 0
+[05-Feb-2025 11:03:39 UTC] PHP Fatal error:  Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.2.0". You are running 8.1.31. in /home/baselinepractice/public_html/v2/crm/vendor/composer/platform_check.php on line 28
+[05-Feb-2025 11:04:19 UTC] PHP Warning:  Module "ssh2" is already loaded in Unknown on line 0
+[05-Feb-2025 11:04:19 UTC] PHP Fatal error:  Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.2.0". You are running 8.1.31. in /home/baselinepractice/public_html/v2/crm/vendor/composer/platform_check.php on line 28
+[14-Feb-2025 07:53:17 UTC] PHP Warning:  Module "ssh2" is already loaded in Unknown on line 0
+[14-Feb-2025 07:53:17 UTC] PHP Fatal error:  Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.2.0". You are running 8.1.31. in /home/baselinepractice/public_html/v2/crm/vendor/composer/platform_check.php on line 28
+[14-Feb-2025 07:53:33 UTC] PHP Warning:  Module "ssh2" is already loaded in Unknown on line 0
+[14-Feb-2025 07:53:49 UTC] PHP Warning:  Module "ssh2" is already loaded in Unknown on line 0
+[14-Feb-2025 07:53:54 UTC] PHP Warning:  Module "ssh2" is already loaded in Unknown on line 0
+[14-Feb-2025 07:54:22 UTC] PHP Warning:  Module "ssh2" is already loaded in Unknown on line 0
+[14-Feb-2025 07:54:22 UTC] PHP Fatal error:  Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.2.0". You are running 8.1.31. in /home/baselinepractice/public_html/v2/crm/vendor/composer/platform_check.php on line 28
+[14-Feb-2025 07:56:04 UTC] PHP Warning:  Module "ssh2" is already loaded in Unknown on line 0
+[14-Feb-2025 07:56:04 UTC] PHP Fatal error:  Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.2.0". You are running 8.1.31. in /home/baselinepractice/public_html/v2/crm/vendor/composer/platform_check.php on line 28
+[14-Feb-2025 07:56:24 UTC] PHP Warning:  Module "ssh2" is already loaded in Unknown on line 0
+[14-Feb-2025 07:56:24 UTC] PHP Fatal error:  Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.2.0". You are running 8.1.31. in /home/baselinepractice/public_html/v2/crm/vendor/composer/platform_check.php on line 28
+[14-Feb-2025 07:57:38 UTC] PHP Warning:  Module "ssh2" is already loaded in Unknown on line 0
+[14-Feb-2025 07:58:43 UTC] PHP Warning:  Module "ssh2" is already loaded in Unknown on line 0
+[14-Feb-2025 07:59:34 UTC] PHP Warning:  Module "ssh2" is already loaded in Unknown on line 0
+[14-Feb-2025 07:59:34 UTC] PHP Fatal error:  Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.2.0". You are running 8.1.31. in /home/baselinepractice/public_html/v2/crm/vendor/composer/platform_check.php on line 28
+[25-Feb-2025 13:22:26 Asia/Karachi] PHP Fatal error:  Cannot declare class App\Http\Controllers\Variables\LeaveTypeController, because the name is already in use in /home/baselinepractice/public_html/v2/crm/app/Http/Controllers/LeaveController.php on line 13
+[25-Feb-2025 13:22:31 Asia/Karachi] PHP Fatal error:  Cannot declare class App\Http\Controllers\Variables\LeaveTypeController, because the name is already in use in /home/baselinepractice/public_html/v2/crm/app/Http/Controllers/LeaveController.php on line 13
+[25-Feb-2025 13:35:47 Asia/Karachi] PHP Fatal error:  Cannot declare class App\Http\Controllers\Variables\LeaveTypeController, because the name is already in use in /home/baselinepractice/public_html/v2/crm/app/Http/Controllers/LeaveController.php on line 13
+[25-Feb-2025 13:38:13 Asia/Karachi] PHP Fatal error:  Cannot declare class App\Http\Controllers\Variables\LeaveTypeController, because the name is already in use in /home/baselinepractice/public_html/v2/crm/app/Http/Controllers/LeaveController.php on line 13
+[25-Feb-2025 13:43:47 Asia/Karachi] PHP Fatal error:  Cannot declare class App\Http\Controllers\Variables\LeaveTypeController, because the name is already in use in /home/baselinepractice/public_html/v2/crm/app/Http/Controllers/LeaveController.php on line 13
+[25-Feb-2025 13:45:25 Asia/Karachi] PHP Fatal error:  Cannot declare class App\Http\Controllers\Variables\LeaveTypeController, because the name is already in use in /home/baselinepractice/public_html/v2/crm/app/Http/Controllers/LeaveController.php on line 13
+[25-Feb-2025 13:48:08 Asia/Karachi] PHP Fatal error:  Cannot declare class App\Http\Controllers\Variables\LeaveTypeController, because the name is already in use in /home/baselinepractice/public_html/v2/crm/app/Http/Controllers/LeaveController.php on line 13
+[25-Feb-2025 13:48:39 Asia/Karachi] PHP Fatal error:  Cannot declare class App\Http\Controllers\Variables\LeaveTypeController, because the name is already in use in /home/baselinepractice/public_html/v2/crm/app/Http/Controllers/LeaveController.php on line 13
+[25-Feb-2025 13:49:09 Asia/Karachi] PHP Fatal error:  Cannot declare class App\Http\Controllers\Variables\LeaveTypeController, because the name is already in use in /home/baselinepractice/public_html/v2/crm/app/Http/Controllers/LeaveController.php on line 13
+[25-Feb-2025 13:50:14 Asia/Karachi] PHP Fatal error:  Cannot declare class App\Http\Controllers\Variables\LeaveTypeControllerTwo, because the name is already in use in /home/baselinepractice/public_html/v2/crm/app/Http/Controllers/LeaveController.php on line 13
+[25-Feb-2025 13:50:45 Asia/Karachi] PHP Fatal error:  Cannot declare class App\Http\Controllers\Variables\LeaveTypeControllerThree, because the name is already in use in /home/baselinepractice/public_html/v2/crm/app/Http/Controllers/LeaveController.php on line 13
+[25-Feb-2025 13:55:26 Asia/Karachi] PHP Fatal error:  Cannot declare class App\Http\Controllers\Variables\LeaveTypeController, because the name is already in use in /home/baselinepractice/public_html/v2/crm/app/Http/Controllers/LeaveController.php on line 13
+[25-Feb-2025 13:56:40 Asia/Karachi] PHP Fatal error:  Cannot declare class App\Http\Controllers\Variables\LeaveTypeController, because the name is already in use in /home/baselinepractice/public_html/v2/crm/app/Http/Controllers/LeaveController.php on line 13
+[25-Feb-2025 13:57:56 Asia/Karachi] PHP Fatal error:  Cannot declare class App\Http\Controllers\Variables\LeaveTypeController, because the name is already in use in /home/baselinepractice/public_html/v2/crm/app/Http/Controllers/LeaveController.php on line 13
+[25-Feb-2025 13:58:09 Asia/Karachi] PHP Fatal error:  Cannot declare class App\Http\Controllers\Variables\LeaveTypeController, because the name is already in use in /home/baselinepractice/public_html/v2/crm/app/Http/Controllers/LeaveController.php on line 13
+[25-Feb-2025 13:58:25 Asia/Karachi] PHP Fatal error:  Cannot declare class App\Http\Controllers\Variables\LeaveTypeController, because the name is already in use in /home/baselinepractice/public_html/v2/crm/app/Http/Controllers/LeaveController.php on line 13
+[25-Feb-2025 14:00:10 Asia/Karachi] PHP Fatal error:  Cannot declare class App\Http\Controllers\Variables\LeaveTypeController, because the name is already in use in /home/baselinepractice/public_html/v2/crm/app/Http/Controllers/LeaveController.php on line 13
+[25-Feb-2025 14:00:40 Asia/Karachi] PHP Fatal error:  Cannot declare class App\Http\Controllers\Variables\LeaveTypeController, because the name is already in use in /home/baselinepractice/public_html/v2/crm/app/Http/Controllers/LeaveController.php on line 13
+[25-Feb-2025 14:04:28 Asia/Karachi] PHP Fatal error:  Cannot declare class App\Http\Controllers\Variables\LeaveTypeController, because the name is already in use in /home/baselinepractice/public_html/v2/crm/app/Http/Controllers/LeaveController.php on line 13
+[25-Feb-2025 14:04:43 Asia/Karachi] PHP Fatal error:  Cannot declare class App\Http\Controllers\Variables\LeaveTypeController, because the name is already in use in /home/baselinepractice/public_html/v2/crm/app/Http/Controllers/LeaveController.php on line 13
+[25-Feb-2025 14:08:45 Asia/Karachi] PHP Fatal error:  Cannot declare class App\Http\Controllers\Variables\LeaveTypeController, because the name is already in use in /home/baselinepractice/public_html/v2/crm/app/Http/Controllers/LeaveController.php on line 13
+[25-Feb-2025 14:09:05 Asia/Karachi] PHP Fatal error:  Cannot declare class App\Http\Controllers\Variables\LeaveTypeController, because the name is already in use in /home/baselinepractice/public_html/v2/crm/app/Http/Controllers/LeaveController.php on line 13
+[25-Feb-2025 14:09:33 Asia/Karachi] PHP Fatal error:  Cannot declare class App\Http\Controllers\Variables\LeaveTypeController, because the name is already in use in /home/baselinepractice/public_html/v2/crm/app/Http/Controllers/LeaveController.php on line 13
+[25-Feb-2025 14:09:44 Asia/Karachi] PHP Fatal error:  Cannot declare class App\Http\Controllers\Variables\LeaveTypeController, because the name is already in use in /home/baselinepractice/public_html/v2/crm/app/Http/Controllers/LeaveController.php on line 13
+[25-Feb-2025 09:20:32 UTC] PHP Warning:  Module "ssh2" is already loaded in Unknown on line 0
+[25-Feb-2025 09:20:48 UTC] PHP Warning:  Module "ssh2" is already loaded in Unknown on line 0
+[03-Mar-2025 10:57:10 UTC] PHP Warning:  include(/home/baselinepractice/public_html/v2/crm/vendor/composer/../../app/Http/Kernel.php): Failed to open stream: No such file or directory in /home/baselinepractice/public_html/v2/crm/vendor/composer/ClassLoader.php on line 576
+[03-Mar-2025 10:57:10 UTC] PHP Warning:  include(): Failed opening '/home/baselinepractice/public_html/v2/crm/vendor/composer/../../app/Http/Kernel.php' for inclusion (include_path='.:/opt/remi/php82/root/usr/share/pear:/opt/remi/php82/root/usr/share/php:/usr/share/pear:/usr/share/php') in /home/baselinepractice/public_html/v2/crm/vendor/composer/ClassLoader.php on line 576
+[03-Mar-2025 10:57:10 UTC] PHP Fatal error:  Uncaught ReflectionException: Class "App\Http\Kernel" does not exist in /home/baselinepractice/public_html/v2/crm/vendor/laravel/framework/src/Illuminate/Container/Container.php:912
+Stack trace:
+#0 /home/baselinepractice/public_html/v2/crm/vendor/laravel/framework/src/Illuminate/Container/Container.php(912): ReflectionClass->__construct()
+#1 /home/baselinepractice/public_html/v2/crm/vendor/laravel/framework/src/Illuminate/Container/Container.php(795): Illuminate\Container\Container->build()
+#2 /home/baselinepractice/public_html/v2/crm/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(986): Illuminate\Container\Container->resolve()
+#3 /home/baselinepractice/public_html/v2/crm/vendor/laravel/framework/src/Illuminate/Container/Container.php(296): Illuminate\Foundation\Application->resolve()
+#4 /home/baselinepractice/public_html/v2/crm/vendor/laravel/framework/src/Illuminate/Container/Container.php(908): Illuminate\Container\Container->Illuminate\Container\{closure}()
+#5 /home/baselinepractice/public_html/v2/crm/vendor/laravel/framework/src/Illuminate/Container/Container.php(795): Illuminate\Container\Container->build()
+#6 /home/baselinepractice/public_html/v2/crm/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(986): Illuminate\Container\Container->resolve()
+#7 /home/baselinepractice/public_html/v2/crm/vendor/laravel/framework/src/Illuminate/Container/Container.php(731): Illuminate\Foundation\Application->resolve()
+#8 /home/baselinepractice/public_html/v2/crm/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(971): Illuminate\Container\Container->make()
+#9 /home/baselinepractice/public_html/v2/crm/public/index.php(75): Illuminate\Foundation\Application->make()
+#10 /home/baselinepractice/public_html/v2/crm/server.php(21): require_once('...')
+#11 {main}
+
+Next Illuminate\Contracts\Container\BindingResolutionException: Target class [App\Http\Kernel] does not exist. in /home/baselinepractice/public_html/v2/crm/vendor/laravel/framework/src/Illuminate/Container/Container.php:914
+Stack trace:
+#0 /home/baselinepractice/public_html/v2/crm/vendor/laravel/framework/src/Illuminate/Container/Container.php(795): Illuminate\Container\Container->build()
+#1 /home/baselinepractice/public_html/v2/crm/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(986): Illuminate\Container\Container->resolve()
+#2 /home/baselinepractice/public_html/v2/crm/vendor/laravel/framework/src/Illuminate/Container/Container.php(296): Illuminate\Foundation\Application->resolve()
+#3 /home/baselinepractice/public_html/v2/crm/vendor/laravel/framework/src/Illuminate/Container/Container.php(908): Illuminate\Container\Container->Illuminate\Container\{closure}()
+#4 /home/baselinepractice/public_html/v2/crm/vendor/laravel/framework/src/Illuminate/Container/Container.php(795): Illuminate\Container\Container->build()
+#5 /home/baselinepractice/public_html/v2/crm/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(986): Illuminate\Container\Container->resolve()
+#6 /home/baselinepractice/public_html/v2/crm/vendor/laravel/framework/src/Illuminate/Container/Container.php(731): Illuminate\Foundation\Application->resolve()
+#7 /home/baselinepractice/public_html/v2/crm/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(971): Illuminate\Container\Container->make()
+#8 /home/baselinepractice/public_html/v2/crm/public/index.php(75): Illuminate\Foundation\Application->make()
+#9 /home/baselinepractice/public_html/v2/crm/server.php(21): require_once('...')
+#10 {main}
+  thrown in /home/baselinepractice/public_html/v2/crm/vendor/laravel/framework/src/Illuminate/Container/Container.php on line 914
+[10-Mar-2025 07:14:10 UTC] PHP Warning:  Module "ssh2" is already loaded in Unknown on line 0
+[10-Mar-2025 07:14:55 UTC] PHP Warning:  Module "ssh2" is already loaded in Unknown on line 0
+[10-Mar-2025 07:15:08 UTC] PHP Warning:  Module "ssh2" is already loaded in Unknown on line 0
+[19-Mar-2025 09:25:58 UTC] PHP Warning:  Module "ssh2" is already loaded in Unknown on line 0
+[19-Mar-2025 09:26:15 UTC] PHP Warning:  Module "ssh2" is already loaded in Unknown on line 0
+[10-Apr-2025 08:46:40 UTC] PHP Warning:  Module "ssh2" is already loaded in Unknown on line 0
+[10-Apr-2025 08:46:59 UTC] PHP Warning:  Module "ssh2" is already loaded in Unknown on line 0
+[10-Apr-2025 08:47:18 UTC] PHP Warning:  Module "ssh2" is already loaded in Unknown on line 0
+[10-Apr-2025 08:53:33 UTC] PHP Warning:  Module "ssh2" is already loaded in Unknown on line 0
+[10-Apr-2025 09:11:45 UTC] PHP Warning:  Module "ssh2" is already loaded in Unknown on line 0
+[10-Apr-2025 09:14:03 UTC] PHP Warning:  Module "ssh2" is already loaded in Unknown on line 0
+[10-Apr-2025 09:15:43 UTC] PHP Warning:  Module "ssh2" is already loaded in Unknown on line 0
+[10-Apr-2025 09:15:57 UTC] PHP Warning:  Module "ssh2" is already loaded in Unknown on line 0
+[10-Apr-2025 09:17:35 UTC] PHP Warning:  Module "ssh2" is already loaded in Unknown on line 0
+[10-Apr-2025 09:22:28 UTC] PHP Warning:  Module "ssh2" is already loaded in Unknown on line 0
+[10-Apr-2025 09:22:29 UTC] PHP Warning:  Module "ssh2" is already loaded in Unknown on line 0
+[10-Apr-2025 09:22:29 UTC] PHP Warning:  Module "ssh2" is already loaded in Unknown on line 0

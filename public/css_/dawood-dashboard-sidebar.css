@@ -1,0 +1,20 @@
+.dashboard-background {
+    margin-top: -8px !important;
+    background-image: url('/v2/crm/public/assets/images/dashboard_background.jpg') !important; /* Add the image URL here */
+    background-size: auto; /* Keeps the original size of 188x178 */
+    background-position: top left; /* Starts repeating from the top-left corner */
+    background-repeat: repeat; /* Repeats the image horizontally and vertically */
+}
+
+
+.sidebar-background {
+    background-image: url('/v2/crm/public/assets/images/sidebar_background.jpeg') !important; /* Image URL */
+    background-position: center; /* Center the image in the container */
+    background-size: cover; /* Scale the image to cover the entire container */
+    background-repeat: no-repeat; /* Prevent the image from repeating */
+}
+
+.sidebar-i{
+    color: #2575fc !important;
+}
+ 

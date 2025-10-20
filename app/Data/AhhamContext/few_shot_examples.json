@@ -1,0 +1,76 @@
+{
+  "examples": [
+    {
+      "user_query": "can you give me the attendances of Alveena Rehmatullah",
+      "ai_thought": "The user wants attendance records for an employee named Alveena Rehmatullah. I need to first find the employee by matching both first_name and last_name, then get their attendance records. I should join attendances with employees table and filter by both first_name and last_name to ensure I get the correct employee.",
+      "sql_query": "SELECT a.*, e.first_name, e.last_name, e.staff_id FROM attendances a JOIN employees e ON a.employee_id = e.id WHERE e.first_name = 'Alveena' AND e.last_name = 'Rehmatullah' ORDER BY a.attendance_date DESC, a.clock_in DESC",
+      "expected_result": "Returns all attendance records for Alveena Rehmatullah with employee details, ordered by most recent first"
+    },
+    {
+      "user_query": "Who was late today?",
+      "ai_thought": "The user wants to find employees who were late today. I need to filter attendances by today's date and attendance_status = 'late', then join with employees to get names.",
+      "sql_query": "SELECT e.first_name, e.last_name, e.staff_id, a.attendance_date, a.clock_in, a.time_late FROM attendances a JOIN employees e ON a.employee_id = e.id WHERE a.attendance_status = 'late' AND DATE(a.attendance_date) = CURDATE()",
+      "expected_result": "Returns list of employees who were late today with their clock-in times and how late they were"
+    },
+    {
+      "user_query": "Show me employees with overtime today",
+      "ai_thought": "The user wants to see employees who worked overtime today. I need to filter attendances where overtime is not '00:00:00' and date is today, then join with employees.",
+      "sql_query": "SELECT e.first_name, e.last_name, e.staff_id, a.attendance_date, a.overtime, a.total_work FROM attendances a JOIN employees e ON a.employee_id = e.id WHERE a.overtime != '00:00:00' AND DATE(a.attendance_date) = CURDATE()",
+      "expected_result": "Returns employees who worked overtime today with their overtime hours and total work time"
+    },
+    {
+      "user_query": "Find employee Zahid Hassan",
+      "ai_thought": "The user wants to find an employee named Zahid Hassan. I need to search in the employees table by both first_name and last_name to get the exact match.",
+      "sql_query": "SELECT e.first_name, e.last_name, e.staff_id, e.email, e.contact_no, e.department_id, e.designation_id, e.company_id FROM employees e WHERE e.first_name = 'Zahid' AND e.last_name = 'Hassan'",
+      "expected_result": "Returns employee details for Zahid Hassan including contact information and organizational details"
+    },
+    {
+      "user_query": "Show attendance summary for this month",
+      "ai_thought": "The user wants a monthly attendance summary. I need to group by date and count attendance records for the current month, showing present and late counts.",
+      "sql_query": "SELECT DATE(a.attendance_date) as date, COUNT(*) as total_attendance, SUM(CASE WHEN a.attendance_status = 'present' THEN 1 ELSE 0 END) as present_count, SUM(CASE WHEN a.attendance_status = 'late' THEN 1 ELSE 0 END) as late_count FROM attendances a WHERE MONTH(a.attendance_date) = MONTH(CURDATE()) AND YEAR(a.attendance_date) = YEAR(CURDATE()) GROUP BY DATE(a.attendance_date) ORDER BY date",
+      "expected_result": "Returns daily attendance counts for the current month showing total attendance, present count, and late count for each day"
+    },
+    {
+      "user_query": "Who was absent yesterday?",
+      "ai_thought": "The user wants to find employees who were absent yesterday. I need to find employees who don't have any attendance records for yesterday's date.",
+      "sql_query": "SELECT e.first_name, e.last_name, e.staff_id FROM employees e WHERE e.id NOT IN (SELECT DISTINCT employee_id FROM attendances WHERE DATE(attendance_date) = DATE_SUB(CURDATE(), INTERVAL 1 DAY))",
+      "expected_result": "Returns list of employees who were absent yesterday (no attendance record for that date)"
+    },
+    {
+      "user_query": "Show me employees in the IT department",
+      "ai_thought": "The user wants to see all employees in the IT department. I need to join employees with departments table and filter by department name.",
+      "sql_query": "SELECT e.first_name, e.last_name, e.staff_id, e.email, e.contact_no, d.department_name FROM employees e JOIN departments d ON e.department_id = d.id WHERE d.department_name = 'IT'",
+      "expected_result": "Returns all employees in the IT department with their contact information"
+    },
+    {
+      "user_query": "Who worked overtime in the Sales department this week?",
+      "ai_thought": "The user wants employees who worked overtime in the Sales department this week. I need to join attendances with employees and departments, filter by overtime, department, and this week's date range.",
+      "sql_query": "SELECT e.first_name, e.last_name, e.staff_id, a.attendance_date, a.overtime FROM attendances a JOIN employees e ON a.employee_id = e.id JOIN departments d ON e.department_id = d.id WHERE a.overtime != '00:00:00' AND d.department_name = 'Sales' AND WEEK(a.attendance_date) = WEEK(CURDATE())",
+      "expected_result": "Returns Sales department employees who worked overtime this week with their overtime hours"
+    },
+    {
+      "user_query": "Show me attendance for Alveena Rehmatullah last week",
+      "ai_thought": "The user wants attendance records for Alveena Rehmatullah from last week. I need to join attendances with employees, filter by both first_name and last_name, and last week's date range.",
+      "sql_query": "SELECT a.*, e.first_name, e.last_name, e.staff_id FROM attendances a JOIN employees e ON a.employee_id = e.id WHERE e.first_name = 'Alveena' AND e.last_name = 'Rehmatullah' AND WEEK(a.attendance_date) = WEEK(CURDATE()) - 1 ORDER BY a.attendance_date DESC",
+      "expected_result": "Returns all attendance records for Alveena Rehmatullah from last week ordered by date"
+    },
+    {
+      "user_query": "Find employees who were late more than 30 minutes today",
+      "ai_thought": "The user wants employees who were late more than 30 minutes today. I need to filter by today's date, late status, and time_late greater than 30 minutes.",
+      "sql_query": "SELECT e.first_name, e.last_name, e.staff_id, a.clock_in, a.time_late FROM attendances a JOIN employees e ON a.employee_id = e.id WHERE a.attendance_status = 'late' AND DATE(a.attendance_date) = CURDATE() AND TIME_TO_SEC(a.time_late) > 1800",
+      "expected_result": "Returns employees who were late more than 30 minutes today with their clock-in times and late duration"
+    },
+    {
+      "user_query": "Show me the last attendance record of Zahid Hassan",
+      "ai_thought": "The user wants the most recent attendance record for an employee named Zahid Hassan. I need to join the attendances and employees tables, filter by both first_name and last_name to ensure I get the correct employee, and order by attendance_date and clock_in time descending to get the latest record.",
+      "sql_query": "SELECT a.*, e.first_name, e.last_name, e.staff_id FROM attendances a JOIN employees e ON a.employee_id = e.id WHERE e.first_name = 'Zahid' AND e.last_name = 'Hassan' ORDER BY a.attendance_date DESC, a.clock_in DESC LIMIT 1",
+      "expected_result": "Returns the most recent attendance record for Zahid Hassan with employee details including clock in/out times, overtime, and attendance status"
+    },
+    {
+      "user_query": "what is the employee name whose staff id is BPS-0000999",
+      "ai_thought": "The user wants to find the employee name for a specific staff ID. I need to query the employees table using the staff_id field to get the first_name and last_name.",
+      "sql_query": "SELECT first_name, last_name, staff_id FROM employees WHERE staff_id = 'BPS-0000999'",
+      "expected_result": "Returns the employee's first name and last name for the given staff ID"
+    }
+  ]
+}

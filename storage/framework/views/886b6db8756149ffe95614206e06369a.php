@@ -1,0 +1,2 @@
+
+<?php echo $__env->make('layout.ahham', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH /Applications/XAMPP/xamppfiles/htdocs/crm/resources/views/ahham/index.blade.php ENDPATH**/ ?>

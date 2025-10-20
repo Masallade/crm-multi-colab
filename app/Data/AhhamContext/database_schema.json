@@ -1,0 +1,141 @@
+{
+  "tables": {
+    "attendances": {
+      "description": "Employee attendance records with detailed clock in/out information, overtime, and attendance status",
+      "columns": {
+        "id": "Primary key - bigint(20) UNSIGNED AUTO_INCREMENT",
+        "employee_id": "Foreign key to employees table - bigint(20) UNSIGNED",
+        "attendance_date": "Date of attendance - date",
+        "clock_in": "Clock in time - varchar(191)",
+        "clock_in_ip": "IP address when clocking in - varchar(45), nullable",
+        "clock_out": "Clock out time - varchar(191), nullable",
+        "clock_out_ip": "IP address when clocking out - varchar(45), nullable",
+        "clock_in_out": "Clock in/out status - tinyint(4), nullable",
+        "time_late": "Time late - varchar(191), default '00:00:00'",
+        "early_leaving": "Early leaving time - varchar(191), default '00:00:00'",
+        "overtime": "Overtime hours - varchar(191), default '00:00:00'",
+        "total_work": "Total work hours - varchar(191), default '00:00:00'",
+        "total_rest": "Total rest time - varchar(191), default '00:00:00'",
+        "attendance_status": "Attendance status - varchar(191), default 'present'",
+        "clock_up": "Clock up timestamp - datetime",
+        "early_arrival": "Early arrival time - varchar(8), default '00:00:00'",
+        "off_desk_hours": "Off desk hours flag - tinyint(1), default 0",
+        "message": "Additional message - longtext, nullable",
+        "should_stream": "Streaming flag - tinyint(1), default 0"
+      },
+      "relationships": {
+        "employee": "attendances.employee_id → employees.id"
+      },
+      "key_fields": ["employee_id", "attendance_date", "clock_in", "clock_out", "attendance_status"]
+    },
+    "employees": {
+      "description": "Employee personal and work information including contact details, employment status, and organizational relationships",
+      "columns": {
+        "id": "Primary key - bigint(20) UNSIGNED AUTO_INCREMENT",
+        "team_lead": "Team lead ID - int(11), nullable",
+        "first_name": "Employee first name - varchar(191), nullable",
+        "last_name": "Employee last name - varchar(191), nullable",
+        "staff_id": "Staff identification number - varchar(191), nullable",
+        "email": "Employee email - varchar(191), nullable",
+        "last_feedback_date": "Last feedback date - date, nullable",
+        "last_appraisal_date": "Last appraisal date - date, nullable",
+        "appraisal_date_mail": "Appraisal date mail flag - int(1), default 0",
+        "contact_no": "Contact number - varchar(15), nullable",
+        "date_of_birth": "Date of birth - date, nullable",
+        "gender": "Gender - varchar(191), nullable",
+        "office_shift_id": "Foreign key to office_shifts table - bigint(20) UNSIGNED, nullable",
+        "company_id": "Foreign key to companies table - bigint(20) UNSIGNED, nullable",
+        "department_id": "Foreign key to departments table - bigint(20) UNSIGNED, nullable",
+        "designation_id": "Foreign key to designations table - bigint(20) UNSIGNED, nullable",
+        "location_id": "Foreign key to locations table - bigint(20) UNSIGNED, nullable",
+        "role_users_id": "Foreign key to role_users table - bigint(20) UNSIGNED, nullable",
+        "appraisal": "Appraisal flag - int(1), default 0",
+        "status_id": "Foreign key to statuses table - bigint(20) UNSIGNED, nullable",
+        "joining_date": "Joining date - date, nullable",
+        "probation_period": "Probation period end date - date, nullable",
+        "exit_date": "Exit date - date, nullable",
+        "marital_status": "Marital status - varchar(191), nullable",
+        "address": "Address - text, nullable",
+        "city": "City - varchar(64), nullable",
+        "state": "State - varchar(64), nullable",
+        "country": "Country - varchar(64), nullable",
+        "zip_code": "ZIP code - varchar(24), nullable",
+        "cv": "CV file path - varchar(64), nullable",
+        "skype_id": "Skype ID - varchar(64), nullable",
+        "fb_id": "Facebook ID - varchar(64), nullable",
+        "twitter_id": "Twitter ID - varchar(64), nullable",
+        "linkedin_id": "LinkedIn ID - varchar(64), nullable",
+        "whatsapp_id": "WhatsApp ID - varchar(64), nullable",
+        "basic_salary": "Basic salary - double, default 0",
+        "payslip_type": "Payslip type - varchar(191), nullable",
+        "attendance_type": "Attendance type - varchar(191), nullable",
+        "pension_type": "Pension type - varchar(50), nullable",
+        "pension_amount": "Pension amount - double(8,2), default 0.00",
+        "is_active": "Active status - tinyint(4), nullable",
+        "created_at": "Record creation timestamp - timestamp, nullable",
+        "updated_at": "Record update timestamp - timestamp, nullable"
+      },
+      "relationships": {
+        "office_shift": "employees.office_shift_id → office_shifts.id",
+        "company": "employees.company_id → companies.id",
+        "department": "employees.department_id → departments.id",
+        "designation": "employees.designation_id → designations.id",
+        "location": "employees.location_id → locations.id",
+        "role_user": "employees.role_users_id → role_users.id",
+        "status": "employees.status_id → statuses.id"
+      },
+      "key_fields": ["first_name", "last_name", "staff_id", "email", "company_id", "department_id", "designation_id"]
+    },
+    "office_shifts": {
+      "description": "Shift schedules for different companies with specific in/out times for each day of the week",
+      "columns": {
+        "id": "Primary key - bigint(20) UNSIGNED AUTO_INCREMENT",
+        "shift_name": "Name of the shift - varchar(191)",
+        "default_shift": "Default shift flag - varchar(191), nullable",
+        "company_id": "Foreign key to companies table - bigint(20) UNSIGNED",
+        "sunday_in": "Sunday clock in time - varchar(191), nullable",
+        "sunday_out": "Sunday clock out time - varchar(191), nullable",
+        "saturday_in": "Saturday clock in time - varchar(191), nullable",
+        "saturday_out": "Saturday clock out time - varchar(191), nullable",
+        "friday_in": "Friday clock in time - varchar(191), nullable",
+        "friday_out": "Friday clock out time - varchar(191), nullable",
+        "thursday_in": "Thursday clock in time - varchar(191), nullable",
+        "thursday_out": "Thursday clock out time - varchar(191), nullable",
+        "wednesday_in": "Wednesday clock in time - varchar(191), nullable",
+        "wednesday_out": "Wednesday clock out time - varchar(191), nullable",
+        "tuesday_in": "Tuesday clock in time - varchar(191), nullable",
+        "tuesday_out": "Tuesday clock out time - varchar(191), nullable",
+        "monday_in": "Monday clock in time - varchar(191), nullable",
+        "monday_out": "Monday clock out time - varchar(191), nullable",
+        "created_at": "Record creation timestamp - timestamp, nullable",
+        "updated_at": "Record update timestamp - timestamp, nullable"
+      },
+      "relationships": {
+        "company": "office_shifts.company_id → companies.id"
+      },
+      "key_fields": ["shift_name", "company_id", "monday_in", "monday_out"]
+    }
+  },
+  "common_queries": {
+    "attendance_queries": [
+      "Get employee attendance records",
+      "Find late employees",
+      "Calculate overtime",
+      "Attendance summary by date range",
+      "Employee attendance history"
+    ],
+    "employee_queries": [
+      "Find employee by name",
+      "Get employees by department",
+      "Get employees by company",
+      "Active employees list",
+      "Employee contact information"
+    ],
+    "shift_queries": [
+      "Get shift schedules",
+      "Find employees by shift",
+      "Shift timing information"
+    ]
+  }
+}
+
