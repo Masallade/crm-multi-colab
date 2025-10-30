@@ -1,0 +1,146 @@
+{
+  "common_patterns": [
+    {
+      "intent": "Get employee attendance",
+      "examples": [
+        "can you give me the attendances of [first_name] [last_name]",
+        "Show me the last attendance record of [first_name] [last_name]",
+        "Get attendance for [first_name] [last_name] today",
+        "Show attendance history for [first_name] [last_name]",
+        "Find attendance records for [first_name] [last_name]",
+        "Show [first_name] [last_name]'s attendance"
+      ],
+      "sql_template": "SELECT a.*, e.first_name, e.last_name, e.staff_id FROM attendances a JOIN employees e ON a.employee_id = e.id WHERE e.first_name = '{first_name}' AND e.last_name = '{last_name}' ORDER BY a.attendance_date DESC, a.clock_in DESC",
+      "time_modifiers": {
+        "today": "AND DATE(a.attendance_date) = CURDATE()",
+        "yesterday": "AND DATE(a.attendance_date) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)",
+        "this_week": "AND WEEK(a.attendance_date) = WEEK(CURDATE())",
+        "last_week": "AND WEEK(a.attendance_date) = WEEK(CURDATE()) - 1",
+        "this_month": "AND MONTH(a.attendance_date) = MONTH(CURDATE())",
+        "last_month": "AND MONTH(a.attendance_date) = MONTH(CURDATE()) - 1"
+      },
+      "note": "For queries like 'can you give me the attendances of Alveena Rehmatullah', extract first_name='Alveena' and last_name='Rehmatullah' from the full name"
+    },
+    {
+      "intent": "Find late employees",
+      "examples": [
+        "Who was late today?",
+        "Show me employees who were late yesterday",
+        "Find late arrivals for [date]",
+        "Show late employees this week",
+        "Who came late to work?"
+      ],
+      "sql_template": "SELECT e.first_name, e.last_name, e.staff_id, a.attendance_date, a.clock_in, a.time_late FROM attendances a JOIN employees e ON a.employee_id = e.id WHERE a.attendance_status = 'late'",
+      "time_modifiers": {
+        "today": "AND DATE(a.attendance_date) = CURDATE()",
+        "yesterday": "AND DATE(a.attendance_date) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)",
+        "this_week": "AND WEEK(a.attendance_date) = WEEK(CURDATE())",
+        "this_month": "AND MONTH(a.attendance_date) = MONTH(CURDATE())"
+      }
+    },
+    {
+      "intent": "Overtime calculation",
+      "examples": [
+        "Show employees with overtime today",
+        "Who worked overtime this week?",
+        "Overtime summary for [date]",
+        "Find employees with overtime",
+        "Show overtime records"
+      ],
+      "sql_template": "SELECT e.first_name, e.last_name, e.staff_id, a.attendance_date, a.overtime, a.total_work FROM attendances a JOIN employees e ON a.employee_id = e.id WHERE a.overtime != '00:00:00'",
+      "time_modifiers": {
+        "today": "AND DATE(a.attendance_date) = CURDATE()",
+        "yesterday": "AND DATE(a.attendance_date) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)",
+        "this_week": "AND WEEK(a.attendance_date) = WEEK(CURDATE())",
+        "this_month": "AND MONTH(a.attendance_date) = MONTH(CURDATE())"
+      }
+    },
+    {
+      "intent": "Attendance summary",
+      "examples": [
+        "Show attendance summary for this month",
+        "Get monthly attendance report",
+        "Attendance statistics for [month]",
+        "Daily attendance summary",
+        "Attendance overview"
+      ],
+      "sql_template": "SELECT DATE(a.attendance_date) as date, COUNT(*) as total_attendance, SUM(CASE WHEN a.attendance_status = 'present' THEN 1 ELSE 0 END) as present_count, SUM(CASE WHEN a.attendance_status = 'late' THEN 1 ELSE 0 END) as late_count FROM attendances a",
+      "time_modifiers": {
+        "this_month": "WHERE MONTH(a.attendance_date) = MONTH(CURDATE()) AND YEAR(a.attendance_date) = YEAR(CURDATE())",
+        "last_month": "WHERE MONTH(a.attendance_date) = MONTH(CURDATE()) - 1 AND YEAR(a.attendance_date) = YEAR(CURDATE())",
+        "this_week": "WHERE WEEK(a.attendance_date) = WEEK(CURDATE())",
+        "last_week": "WHERE WEEK(a.attendance_date) = WEEK(CURDATE()) - 1"
+      },
+      "group_by": "GROUP BY DATE(a.attendance_date) ORDER BY date"
+    },
+    {
+      "intent": "Employee information",
+      "examples": [
+        "Find employee [first_name] [last_name]",
+        "Get contact details for [first_name] [last_name]",
+        "Show employee details",
+        "Search for [first_name] [last_name]",
+        "Get employee information",
+        "Find [first_name] [last_name]"
+      ],
+      "sql_template": "SELECT e.first_name, e.last_name, e.staff_id, e.email, e.contact_no, e.department_id, e.designation_id, e.company_id FROM employees e WHERE e.first_name = '{first_name}' AND e.last_name = '{last_name}'"
+    },
+    {
+      "intent": "Find employee by staff ID",
+      "examples": [
+        "what is the employee name whose staff id is [staff_id]",
+        "Find employee with staff ID [staff_id]",
+        "Get employee details for staff ID [staff_id]",
+        "Who has staff ID [staff_id]",
+        "Show employee information for [staff_id]"
+      ],
+      "sql_template": "SELECT first_name, last_name, staff_id, email, contact_no, department_id, designation_id FROM employees WHERE staff_id = '{staff_id}'"
+    },
+    {
+      "intent": "Department employees",
+      "examples": [
+        "Show employees in [department]",
+        "Get [department] team members",
+        "Find [department] staff",
+        "List [department] employees"
+      ],
+      "sql_template": "SELECT e.first_name, e.last_name, e.staff_id, e.email, e.contact_no, d.department_name FROM employees e JOIN departments d ON e.department_id = d.id WHERE d.department_name = '{department}'"
+    },
+    {
+      "intent": "Absent employees",
+      "examples": [
+        "Who was absent today?",
+        "Show absent employees yesterday",
+        "Find employees who didn't come to work",
+        "List absent staff"
+      ],
+      "sql_template": "SELECT e.first_name, e.last_name, e.staff_id FROM employees e WHERE e.id NOT IN (SELECT DISTINCT employee_id FROM attendances WHERE DATE(attendance_date) = '{date}')"
+    }
+  ],
+  "combination_rules": [
+    {
+      "description": "How to combine multiple conditions",
+      "examples": [
+        "employee + department + date_range",
+        "employee + attendance_status + time_period",
+        "department + overtime + date",
+        "employee + late + specific_date"
+      ]
+    }
+  ],
+  "time_functions": {
+    "today": "DATE(a.attendance_date) = CURDATE()",
+    "yesterday": "DATE(a.attendance_date) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)",
+    "this_week": "WEEK(a.attendance_date) = WEEK(CURDATE())",
+    "last_week": "WEEK(a.attendance_date) = WEEK(CURDATE()) - 1",
+    "this_month": "MONTH(a.attendance_date) = MONTH(CURDATE()) AND YEAR(a.attendance_date) = YEAR(CURDATE())",
+    "last_month": "MONTH(a.attendance_date) = MONTH(CURDATE()) - 1 AND YEAR(a.attendance_date) = YEAR(CURDATE())",
+    "monday": "DAYNAME(a.attendance_date) = 'Monday'",
+    "tuesday": "DAYNAME(a.attendance_date) = 'Tuesday'",
+    "wednesday": "DAYNAME(a.attendance_date) = 'Wednesday'",
+    "thursday": "DAYNAME(a.attendance_date) = 'Thursday'",
+    "friday": "DAYNAME(a.attendance_date) = 'Friday'",
+    "saturday": "DAYNAME(a.attendance_date) = 'Saturday'",
+    "sunday": "DAYNAME(a.attendance_date) = 'Sunday'"
+  }
+}
