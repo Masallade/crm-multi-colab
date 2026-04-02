@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\leave;
+use Carbon\Carbon;
 
 class EmployeeLeaveController extends Controller {
 
@@ -28,6 +29,17 @@ class EmployeeLeaveController extends Controller {
 					->addColumn('department', function ($row)
 					{
 						return empty($row->department->department_name) ? '' : $row->department->department_name;
+					})
+					->addColumn('created_at', function ($row) {
+						try {
+							// Convert UTC to Pakistan time (Asia/Karachi)
+							return \Carbon\Carbon::parse($row->created_at)
+								->setTimezone('Asia/Karachi')
+								->format('d-m-Y - H:i');
+						} catch (\Exception $e) {
+							// Fallback to original value if parsing fails
+							return $row->created_at;
+						}
 					})
 					->addColumn('action', function ($data) use ($employee,$logged_user)
 					{
@@ -56,6 +68,15 @@ class EmployeeLeaveController extends Controller {
 			$employee_name = $data->employee->full_name;
 			$start_date_name = $data->start_date;
 			$end_date_name = $data->end_date;
+
+			// Format created_at to Pakistan time
+			try {
+				$data->created_at_formatted = \Carbon\Carbon::parse($data->created_at)
+					->setTimezone('Asia/Karachi')
+					->format('d-m-Y - H:i');
+			} catch (\Exception $e) {
+				$data->created_at_formatted = $data->created_at;
+			}
 
 			return response()->json(['data' => $data, 'company_name' => $company_name, 'employee_name' => $employee_name, 'department' => $department, 'leave_type_name' => $leave_type_name,
 				'start_date_name' => $start_date_name, 'end_date_name' => $end_date_name]);

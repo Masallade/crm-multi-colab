@@ -4,6 +4,7 @@
 namespace App\Http\Controllers\Variables;
 
 use App\Models\Employee;
+use App\Models\GeneralSetting;
 use App\Models\EmployeeLeaveTypeDetail;
 use App\Http\traits\LeaveTypeDataManageTrait;
 use App\Models\LeaveType;
@@ -11,77 +12,157 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use DB;
 use DataTables;
+
 class EmployeeaddLeaveController {
 
     use LeaveTypeDataManageTrait;
 
+    /** Minutes per calendar day (24 hours). 4d 17h 41m = 5760 + 1020 + 41 = 6821 total minutes. */
+    private const MINUTES_PER_CALENDAR_DAY = 1440;
+
+    private function getMinutesPerDay(): int
+    {
+        return self::MINUTES_PER_CALENDAR_DAY;
+    }
+
+    /**
+     * Convert stored decimal days to [days, hours, minutes] using minutes-per-day.
+     * All calculations in minutes: total_minutes = decimal_days * minutes_per_day.
+     */
+    private function decimalDaysToDhm(float $decimalDays, int $minutesPerDay): array
+    {
+        if ($minutesPerDay <= 0) {
+            $minutesPerDay = 8 * 60 + 0; // 480 fallback
+        }
+        $totalMinutes = (int) round((float) $decimalDays * $minutesPerDay);
+        $days = (int) floor($totalMinutes / $minutesPerDay);
+        $remainder = $totalMinutes % $minutesPerDay;
+        $hours = (int) floor($remainder / 60);
+        $mins = (int) ($remainder % 60);
+        return ['days' => $days, 'hours' => $hours, 'minutes' => $mins];
+    }
+
+    /**
+     * Convert days, hours, minutes to decimal days (total_minutes / minutes_per_day).
+     */
+    private function dhmToDecimalDays(int $days, int $hours, int $minutes, int $minutesPerDay): float
+    {
+        if ($minutesPerDay <= 0) {
+            $minutesPerDay = 480;
+        }
+        $totalMinutes = $days * $minutesPerDay + $hours * 60 + $minutes;
+        return round($totalMinutes / $minutesPerDay, 4);
+    }
+
+    /** Build HTML options for a select (0 to max inclusive), with selected value. */
+    private function selectOptions(int $min, int $max, int $selected): string
+    {
+        $html = '';
+        for ($i = $min; $i <= $max; $i++) {
+            $s = ($i === $selected) ? ' selected' : '';
+            $html .= '<option value="' . $i . '"' . $s . '>' . $i . '</option>';
+        }
+        return $html;
+    }
 
     public function index(Request $request)
-{
-    if ($request->ajax()) {
-        $employees = Employee::with('employeeLeaveTypeDetail')->get();
+    {
+        if ($request->ajax()) {
+            $employees = Employee::with('employeeLeaveTypeDetail')->get();
 
-        if ($employees->isEmpty()) {
-            return response()->json(['error' => 'No employees found']);
-        }
-
-        $filteredEmployees = $employees->map(function ($employee) use ($request) {
-            if (!$employee->employeeLeaveTypeDetail) {
-                return null;
+            if ($employees->isEmpty()) {
+                return response()->json(['error' => 'No employees found']);
             }
 
-            // Convert serialized leave_type_detail to array
-            $leaveDetails = unserialize($employee->employeeLeaveTypeDetail->leave_type_detail);
+            $minutesPerDay = $this->getMinutesPerDay();
 
-            if (!is_array($leaveDetails)) {
-                return null;
-            }
+            $filteredEmployees = $employees->map(function ($employee) use ($request) {
+                if (!$employee->employeeLeaveTypeDetail) {
+                    return null;
+                }
 
-            // 🔍 **Check if filtering is applied**
-            if ($request->has('leave_type') && !empty($request->leave_type)) {
-                // ✅ Filter by `leave_type_id`
-                $leaveDetails = collect($leaveDetails)->where('leave_type_id', (int) $request->leave_type)->values();
-            } else {
-                // ✅ Load only "Annual Leave" by default
-                $leaveDetails = collect($leaveDetails)->where('leave_type', 'Annual Leave')->values();
-            }
+                $leaveDetails = unserialize($employee->employeeLeaveTypeDetail->leave_type_detail);
 
-            return [
-                'employee' => $employee,
-                'leaveDetails' => $leaveDetails
-            ];
-        })->filter(); // Remove null values
+                if (!is_array($leaveDetails)) {
+                    return null;
+                }
 
-        if ($filteredEmployees->isEmpty()) {
-            return response()->json(['error' => 'No matching employees found']);
-        }
+                if ($request->has('leave_type') && !empty($request->leave_type)) {
+                    $leaveDetails = collect($leaveDetails)->where('leave_type_id', (int) $request->leave_type)->values();
+                } else {
+                    $leaveDetails = collect($leaveDetails)->where('leave_type', 'Annual Leave')->values();
+                }
 
-        $leaveData = $filteredEmployees->map(function ($item) {
-            return collect($item['leaveDetails'])->map(function ($leave) use ($item) {
                 return [
-                    'employee_id' => $item['employee']->id,
-                    'employee_name' => $item['employee']->first_name . ' ' . $item['employee']->last_name,
-                    'leave_type_id' => $leave['leave_type_id'],
-                    'leave_type' => $leave['leave_type'],
-                    'allocated_day' => '<input type="number" class="form-control allocated-day" value="' . $leave['allocated_day'] . '" data-employee-id="' . $item['employee']->id . '" data-leave-type-id="' . $leave['leave_type_id'] . '">',
-                    'remaining_allocated_day' => '<input type="number" class="form-control remaining-allocated-day" value="' . $leave['remaining_allocated_day'] . '" data-employee-id="' . $item['employee']->id . '" data-leave-type-id="' . $leave['leave_type_id'] . '">',
+                    'employee' => $employee,
+                    'leaveDetails' => $leaveDetails
                 ];
-            });
-        })->flatten(1);
+            })->filter();
 
-        return DataTables::of($leaveData)->rawColumns(['allocated_day', 'remaining_allocated_day'])->make(true);
+            if ($filteredEmployees->isEmpty()) {
+                return response()->json(['error' => 'No matching employees found']);
+            }
+
+            $leaveData = $filteredEmployees->map(function ($item) use ($minutesPerDay) {
+                return collect($item['leaveDetails'])->map(function ($leave) use ($item, $minutesPerDay) {
+                    $allocatedDecimal = isset($leave['allocated_day']) ? (float) $leave['allocated_day'] : 0;
+                    $remainingDecimal = isset($leave['remaining_allocated_day']) ? (float) $leave['remaining_allocated_day'] : 0;
+
+                    $allocatedDhm = $this->decimalDaysToDhm($allocatedDecimal, $minutesPerDay);
+                    $remainingDhm = $this->decimalDaysToDhm($remainingDecimal, $minutesPerDay);
+
+                    $empId = $item['employee']->id;
+                    $ltId = $leave['leave_type_id'] ?? '';
+
+                    $ad = (int) $allocatedDhm['days'];
+                    $ah = (int) $allocatedDhm['hours'];
+                    $am = (int) $allocatedDhm['minutes'];
+                    $rd = (int) $remainingDhm['days'];
+                    $rh = (int) $remainingDhm['hours'];
+                    $rm = (int) $remainingDhm['minutes'];
+
+                    $allocatedHtml = '<div class="d-flex flex-wrap gap-1 align-items-center allocated-dhm" data-employee-id="' . (int) $empId . '" data-leave-type-id="' . (int) $ltId . '">' .
+                        '<select class="form-control form-control-sm allocated-days" style="width:65px" title="' . __('Days') . '">' . $this->selectOptions(0, 366, $ad) . '</select>' .
+                        '<select class="form-control form-control-sm allocated-hours" style="width:65px" title="' . __('Hours') . '">' . $this->selectOptions(0, 23, $ah) . '</select>' .
+                        '<select class="form-control form-control-sm allocated-mins" style="width:65px" title="' . __('Minutes') . '">' . $this->selectOptions(0, 59, $am) . '</select>' .
+                        '</div>';
+                    $remainingHtml = '<div class="d-flex flex-wrap gap-1 align-items-center remaining-dhm" data-employee-id="' . (int) $empId . '" data-leave-type-id="' . (int) $ltId . '">' .
+                        '<select class="form-control form-control-sm remaining-days" style="width:65px" title="' . __('Days') . '">' . $this->selectOptions(0, 366, $rd) . '</select>' .
+                        '<select class="form-control form-control-sm remaining-hours" style="width:65px" title="' . __('Hours') . '">' . $this->selectOptions(0, 23, $rh) . '</select>' .
+                        '<select class="form-control form-control-sm remaining-mins" style="width:65px" title="' . __('Minutes') . '">' . $this->selectOptions(0, 59, $rm) . '</select>' .
+                        '</div>';
+
+                    return [
+                        'employee_id' => $empId,
+                        'employee_name' => $item['employee']->first_name . ' ' . $item['employee']->last_name,
+                        'leave_type_id' => $leave['leave_type_id'] ?? null,
+                        'leave_type' => $leave['leave_type'] ?? '',
+                        'allocated_day' => $allocatedHtml,
+                        'remaining_allocated_day' => $remainingHtml,
+                        'minutes_per_day' => $minutesPerDay,
+                    ];
+                });
+            })->flatten(1);
+
+            return DataTables::of($leaveData)->rawColumns(['allocated_day', 'remaining_allocated_day'])->make(true);
+        }
     }
-}
 
-// 🚀 Function to Update Leave Data
+// 🚀 Function to Update Leave Data (inputs: days, hours, minutes; stored as decimal days)
 public function updateLeave(Request $request)
 {
+    $minutesPerDay = $this->getMinutesPerDay();
+
     $validatedData = $request->validate([
         'updates' => 'required|array',
         'updates.*.employee_id' => 'required|exists:employees,id',
         'updates.*.leave_type_id' => 'required',
-        'updates.*.allocated_day' => 'required|integer|min:0',
-        'updates.*.remaining_allocated_day' => 'required|integer|min:0',
+        'updates.*.allocated_days'   => ['required', 'integer', 'min:0', 'max:366'],
+        'updates.*.allocated_hours'  => ['required', 'integer', 'min:0', 'max:23'],
+        'updates.*.allocated_minutes'=> ['required', 'integer', 'min:0', 'max:59'],
+        'updates.*.remaining_days'   => ['required', 'integer', 'min:0', 'max:366'],
+        'updates.*.remaining_hours'  => ['required', 'integer', 'min:0', 'max:23'],
+        'updates.*.remaining_minutes'=> ['required', 'integer', 'min:0', 'max:59'],
     ]);
 
     try {
@@ -95,25 +176,37 @@ public function updateLeave(Request $request)
             $employee = Employee::find($update['employee_id']);
 
             if (!$employee || !$employee->employeeLeaveTypeDetail) {
-                continue; // Skip if no leave details exist
+                continue;
             }
+
+            $allocatedDecimal = $this->dhmToDecimalDays(
+                (int) $update['allocated_days'],
+                (int) $update['allocated_hours'],
+                (int) $update['allocated_minutes'],
+                $minutesPerDay
+            );
+            $remainingDecimal = $this->dhmToDecimalDays(
+                (int) $update['remaining_days'],
+                (int) $update['remaining_hours'],
+                (int) $update['remaining_minutes'],
+                $minutesPerDay
+            );
 
             $leaveDetails = unserialize($employee->employeeLeaveTypeDetail->leave_type_detail);
 
             foreach ($leaveDetails as &$leave) {
-                if ($leave['leave_type_id'] == $update['leave_type_id']) {
-                    $leave['allocated_day'] = $update['allocated_day'];
-                    $leave['remaining_allocated_day'] = $update['remaining_allocated_day'];
+                if (isset($leave['leave_type_id']) && (int) $leave['leave_type_id'] === (int) $update['leave_type_id']) {
+                    $leave['allocated_day'] = $allocatedDecimal;
+                    $leave['remaining_allocated_day'] = $remainingDecimal;
                 }
             }
 
-            // Save updated data
             $employee->employeeLeaveTypeDetail->leave_type_detail = serialize($leaveDetails);
             $employee->employeeLeaveTypeDetail->save();
         }
 
         DB::commit();
-        return response()->json(['success' => 'Leave details updated successfully']);
+        return response()->json(['success' => __('Leave details updated successfully.')]);
 
     } catch (\Exception $e) {
         DB::rollBack();
@@ -131,7 +224,7 @@ public function updateLeave(Request $request)
 			$validator = Validator::make($request->only('leave_type','allocated_day'),
 				[
 					'leave_type' => 'required|unique:leave_types',
-					'allocated_day' => 'nullable|numeric',
+					'allocated_day' => ['nullable', 'numeric', 'min:0.5', 'max:30.05'],
 				]
 			);
 
@@ -190,10 +283,10 @@ public function updateLeave(Request $request)
 
 			$id = $request->get('hidden_leave_id');
 
-			$validator = Validator::make($request->only('leave_type_edit'),
+			$validator = Validator::make($request->only('leave_type_edit', 'allocated_day_edit'),
 				[
 					'leave_type_edit' => 'required|unique:leave_types,leave_type,'.$id,
-					 'allocated_day' => 'nullable|numeric'
+					'allocated_day_edit' => ['nullable', 'numeric', 'min:0.5', 'max:30.05']
 				]
 			);
 
@@ -249,8 +342,11 @@ public function updateLeave(Request $request)
                             $dataLeaveType[$key]['remaining_allocated_day']  = $specificLeaveType['remaining_allocated_day'];
                         }
                     }else{
-                        $totalPaidLeave = $employee->employeeLeave->where('leave_type_id',$item->id)->sum('total_days');
-                        $remaining_leave = $item->allocated_day - $totalPaidLeave;
+                        // total_days in leaves table is stored in minutes
+                        $totalPaidLeaveMinutes = $employee->employeeLeave->where('leave_type_id', $item->id)->sum('total_days');
+                        $minutesPerDay = $this->getMinutesPerDay();
+                        $totalPaidLeaveDays = $minutesPerDay > 0 ? ($totalPaidLeaveMinutes / $minutesPerDay) : 0;
+                        $remaining_leave = $item->allocated_day - $totalPaidLeaveDays;
                         $dataLeaveType[$key]['remaining_allocated_day'] = $remaining_leave < 0 ? 0 : $remaining_leave;
                     }
                 }

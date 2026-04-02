@@ -294,11 +294,21 @@
             title='{{__('Leave Type')}}'>
         @foreach($leaveTypeDetails as $leave)
             @php
-                // Get remaining allocated days or fallback to allocated days
-                $remainingDays = $leave['remaining_allocated_day'];
+                $remaining = isset($leave['remaining_allocated_day']) && is_numeric($leave['remaining_allocated_day']) ? (float)$leave['remaining_allocated_day'] : 0;
+                $minsPerDay = $minutes_per_day ?? 480;
+                if ($minsPerDay <= 0) $minsPerDay = 480;
+                $totalMins = round($remaining * $minsPerDay);
+                $d = (int)floor($totalMins / $minsPerDay);
+                $remainder = $totalMins % $minsPerDay;
+                $h = (int)floor($remainder / 60);
+                $m = (int)($remainder % 60);
+                $balanceText = $d . ' ' . ($d == 1 ? __('Day') : __('Days'));
+                if ($h > 0 || $m > 0) {
+                    $balanceText .= ' ' . $h . ' ' . ($h == 1 ? __('Hour') : __('Hours')) . ' ' . $m . ' ' . ($m == 1 ? __('Minute') : __('Minutes'));
+                }
             @endphp
-            <option value="{{ $leave['leave_type_id'] }}" data-day="{{ $remainingDays }}">
-                {{ $leave['leave_type'] }} ({{ $remainingDays }} Days)
+            <option value="{{ $leave['leave_type_id'] }}" data-day="{{ $remaining }}">
+                {{ $leave['leave_type'] }} ({{ $balanceText }})
             </option>
         @endforeach
     </select>
@@ -322,10 +332,31 @@
                                 </div> -->
 
                                 <div class="col-md-4 form-group">
-                                    <label>Total Days</label>
-                                    <select id="total_days" name="total_days" class="form-control">
-                                        <option value="">Select Days</option>
-                                    </select>
+                                    <label class="d-block mb-2">{{__('Total Days')}} *</label>
+                                    <div class="total-days-group border rounded bg-light px-3 py-2">
+                                        <div class="row no-gutters align-items-end">
+                                            <div class="col-4 pr-2">
+                                                <label class="small text-muted mb-1 d-block">{{ __('Days') }}</label>
+                                                <select id="total_days_d" name="total_days_d" class="form-control form-control-sm total-days-select" title="{{ __('Days') }}">
+                                                    <option value="0" selected>0</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-4 px-1">
+                                                <label class="small text-muted mb-1 d-block">{{ __('Hours') }}</label>
+                                                <select id="total_days_h" name="total_days_h" class="form-control form-control-sm total-days-select" title="{{ __('Hours') }}">
+                                                    @for($i = 0; $i <= 23; $i++) <option value="{{ $i }}" {{ $i === 0 ? 'selected' : '' }}>{{ $i }}</option> @endfor
+                                                </select>
+                                            </div>
+                                            <div class="col-4 pl-2">
+                                                <label class="small text-muted mb-1 d-block">{{ __('Minutes') }}</label>
+                                                <select id="total_days_m" name="total_days_m" class="form-control form-control-sm total-days-select" title="{{ __('Minutes') }}">
+                                                    @for($i = 0; $i <= 59; $i++) <option value="{{ $i }}" {{ $i === 0 ? 'selected' : '' }}>{{ $i }}</option> @endfor
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="small text-muted mt-1 pt-1 border-top mt-2 pt-2" id="total_days_summary">{{ __('Duration in days, hours and minutes') }}</div>
+                                    </div>
+                                    <input type="hidden" name="total_days" id="total_days_hidden" value="">
                                 </div>
 
 
@@ -552,9 +583,29 @@
         "use strict";
 
 
-        let startDateInput = $('#start_date');
-        let endDateInput = $('#end_date');
-        let totalDaysInput = $('#total_days');
+        // Scope to Leave Request modal so we always target the correct fields
+        let $leaveModal = $('#leaveModal');
+        let startDateInput = () => $leaveModal.find('#start_date');
+        let endDateInput = () => $leaveModal.find('#end_date');
+        let minutesPerDay = {{ $minutes_per_day ?? 480 }};
+        let loggedEmployeeId = {{ $employee->id }};
+        if (minutesPerDay <= 0) minutesPerDay = 480;
+        var shiftMaxHours = 0;
+        var shiftLastMinutes = 0;
+
+        // Count weekdays (Mon–Fri) between start and end inclusive; excludes Saturday and Sunday.
+        function countWeekdays(startDate, endDate) {
+            var d = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+            var end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+            if (d.getTime() > end.getTime()) return 0;
+            var count = 0;
+            while (d.getTime() <= end.getTime()) {
+                var day = d.getDay();
+                if (day !== 0 && day !== 6) count++;
+                d.setDate(d.getDate() + 1);
+            }
+            return count;
+        }
 
         $(document).ready(function () {
             let date = $('.date');
@@ -562,60 +613,255 @@
                 format: '{{ env('Date_Format_JS')}}',
                 autoclose: true,
                 todayHighlight: true,
-                startDate: new Date(new Date().setDate(new Date().getDate() - 6)) // Only allow last 7 days including today
+                startDate: new Date(new Date().setDate(new Date().getDate() - 6))
             });
 
-            // const startDateInput = $('#start_date');
-            // const endDateInput = $('#end_date');
-            // const totalDaysInput = $('#total_days');
-
-            startDateInput.on('change', function() {
+            function updateTotalDaysFromDates() {
                 getDateResult();
-            });
-
-            endDateInput.on('change', function() {
-                getDateResult();
-            });
-
-const getDateResult = () => {
-    if (!startDateInput.val() || !endDateInput.val()) {
-        return;
-    }
-
-    let startDateFormat = convertDataFormat(startDateInput.val());
-    let endDateFormat = convertDataFormat(endDateInput.val());
-
-    let startDate = new Date(startDateFormat);
-    let endDate = new Date(endDateFormat);
-
-    if (startDate.getTime() === endDate.getTime()) {
-        // If same day, show 0.5 day and 1 day options
-        totalDaysInput.html(`
-            <option value="0.5">0.5 Day</option>
-            <option value="1">1 Day</option>
-        `);
-    } else {
-        // If different days, calculate total days normally
-        let timeDiff = endDate.getTime() - startDate.getTime();
-        let totalDays = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
-        
-        if (totalDays < 0) {
-            totalDays = 0;
-        }
-        
-        totalDaysInput.html(`<option value="${totalDays}">${totalDays} Days</option>`);
-    }
-}
-
-
-            const convertDataFormat = getDateValue => {
-                const inputDate = getDateValue;
-                const parts = inputDate.split("-");
-                const date = new Date(parts[2], parts[1] - 1, parts[0]);
-                const outputDate = date.toISOString().substring(0, 10);
-                return outputDate;
             }
+            $leaveModal.on('change', '#start_date, #end_date', updateTotalDaysFromDates);
+            $leaveModal.on('changeDate', '#start_date, #end_date', updateTotalDaysFromDates);
+            $leaveModal.on('change', '#leave_type', updateTotalDaysFromDates);
+            $leaveModal.on('change', '#total_days_d', function() {
+                applyTotalDaysStateFromDays();
+                updateTotalDaysSummary();
+            });
+            $leaveModal.on('change', '#total_days_h', function() {
+                updateMinutesOptionsForHours();
+                applyTotalDaysStateFromHours();
+                updateTotalDaysSummary();
+            });
+            $leaveModal.on('change', '#total_days_m', function() {
+                applyTotalDaysStateFromMinutes();
+                updateTotalDaysSummary();
+            });
         });
+
+        function getDateResult() {
+            let $start = startDateInput();
+            let $end = endDateInput();
+            let $d = $leaveModal.find('#total_days_d');
+            let $h = $leaveModal.find('#total_days_h');
+            let $m = $leaveModal.find('#total_days_m');
+            if (!$d.length) return;
+
+            let startDate = null;
+            let endDate = null;
+            try {
+                startDate = $start.datepicker('getDate');
+                endDate = $end.datepicker('getDate');
+            } catch (e) {}
+            if (!startDate && $start.val()) startDate = parseDateDMY($start.val());
+            if (!endDate && $end.val()) endDate = parseDateDMY($end.val());
+
+            function parseDateDMY(dateStr) {
+                if (!dateStr || typeof dateStr !== 'string') return null;
+                let parts = dateStr.trim().split("-");
+                if (parts.length !== 3) return null;
+                let day = parseInt(parts[0], 10);
+                let month = parseInt(parts[1], 10) - 1;
+                let year = parseInt(parts[2], 10);
+                if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
+                let d = new Date(year, month, day);
+                return isNaN(d.getTime()) ? null : d;
+            }
+
+            if (!startDate || !endDate || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+                $d.empty().append($('<option value="0">0</option>')).val(0).prop('disabled', true);
+                $h.val(0).prop('disabled', true);
+                $m.val(0).prop('disabled', true);
+                updateTotalDaysSummary();
+                return;
+            }
+
+            var totalMinutes = 0;
+            if (startDate.getTime() === endDate.getTime()) {
+                totalMinutes = Math.round(minutesPerDay * 0.5);
+            } else if (startDate.getTime() < endDate.getTime()) {
+                var weekdays = countWeekdays(startDate, endDate);
+                totalMinutes = weekdays * minutesPerDay;
+            }
+            var d = Math.floor(totalMinutes / minutesPerDay);
+            var remainder = totalMinutes % minutesPerDay;
+            var hrs = Math.floor(remainder / 60);
+            var mins = remainder % 60;
+
+            var maxDays = Math.min(31, d);
+            var isSameDay = (startDate.getTime() === endDate.getTime());
+            var optionsStart, optionsEnd, selectedDays;
+            if (maxDays === 0) {
+                optionsStart = 0;
+                optionsEnd = 0;
+                selectedDays = 0;
+            } else if (isSameDay) {
+                optionsStart = 0;
+                optionsEnd = 1;
+                selectedDays = 0; // Default to 0 days for same date to enable hours/minutes
+            } else {
+                optionsStart = maxDays - 1;
+                optionsEnd = maxDays;
+                selectedDays = maxDays;
+            }
+            $d.empty();
+            for (var i = optionsStart; i <= optionsEnd; i++) {
+                $d.append($('<option></option>').attr('value', i).text(i));
+            }
+            $d.val(selectedDays).prop('disabled', false);
+            
+            // Apply business rule: only disable hours/minutes when maximum days selected
+            if (selectedDays === maxDays && maxDays > 0) {
+                // Maximum days selected → disable hours/minutes (full days only)
+                $h.val(0).prop('disabled', true);
+                $m.val(0).prop('disabled', true);
+            } else {
+                // Partial days (0 or lower option) → enable hours/minutes and set calculated values
+                $h.val(Math.min(23, hrs)).prop('disabled', false);
+                $m.val(Math.min(59, mins)).prop('disabled', false);
+                updateHoursOptionsForEndDate();
+                updateMinutesOptionsForHours();
+            }
+
+            updateTotalDaysSummary();
+        }
+
+        function updateHoursOptionsForEndDate() {
+            var $h = $leaveModal.find('#total_days_h');
+            var $end = endDateInput();
+            if (!$h.length || !$end.length) return;
+
+            var endDateStr = $end.val();
+            if (!endDateStr || !loggedEmployeeId) {
+                return;
+            }
+
+            $.ajax({
+                url: "{{ route('leaves.shift_hours') }}",
+                method: 'GET',
+                data: {
+                    employee_id: loggedEmployeeId,
+                    date: endDateStr
+                },
+                success: function (resp) {
+                    var maxHours = parseInt(resp.hours, 10);
+                    if (isNaN(maxHours) || maxHours < 0) maxHours = 0;
+                    if (maxHours > 23) maxHours = 23;
+                    var minutesRemainder = parseInt(resp.minutes, 10);
+                    if (isNaN(minutesRemainder) || minutesRemainder < 0) minutesRemainder = 0;
+
+                    shiftMaxHours = maxHours;
+                    shiftLastMinutes = minutesRemainder;
+
+                    var currentVal = parseInt($h.val(), 10);
+                    if (isNaN(currentVal) || currentVal < 0) currentVal = 0;
+
+                    $h.empty();
+                    for (var i = 0; i <= maxHours; i++) {
+                        $h.append($('<option></option>').attr('value', i).text(i));
+                    }
+
+                    if (currentVal > maxHours) {
+                        currentVal = maxHours;
+                    }
+                    $h.val(currentVal);
+                    updateMinutesOptionsForHours();
+                }
+            });
+        }
+
+        function updateMinutesOptionsForHours() {
+            var $h = $leaveModal.find('#total_days_h');
+            var $m = $leaveModal.find('#total_days_m');
+            if (!$h.length || !$m.length) return;
+
+            var hVal = parseInt($h.val(), 10) || 0;
+            var maxMinutes;
+
+            if (shiftMaxHours > 0 && hVal === shiftMaxHours) {
+                maxMinutes = shiftLastMinutes;
+                $m.empty();
+                if (maxMinutes <= 0) {
+                    // Exact whole-hour shift (e.g. 8:00) -> minutes fixed at 0 and disabled
+                    $m.append($('<option></option>').attr('value', 0).text(0));
+                    $m.val(0).prop('disabled', true);
+                } else {
+                    // Shift with remainder (e.g. 8:30) -> show only that remainder value
+                    $m.append($('<option></option>').attr('value', maxMinutes).text(maxMinutes));
+                    $m.val(maxMinutes).prop('disabled', true);
+                }
+            } else if (hVal > 0) {
+                // 1..(maxHours-1): user can select 0..59 minutes (include 0!)
+                $m.empty();
+                for (var i = 0; i <= 59; i++) {
+                    $m.append($('<option></option>').attr('value', i).text(i));
+                }
+                $m.prop('disabled', false);
+            } else {
+                $m.empty();
+                for (var i = 0; i <= 59; i++) {
+                    $m.append($('<option></option>').attr('value', i).text(i));
+                }
+                $m.prop('disabled', false);
+            }
+        }
+
+        // When user changes Days: only disable hours/minutes when selecting the maximum available option
+        function applyTotalDaysStateFromDays() {
+            var $d = $leaveModal.find('#total_days_d');
+            var $h = $leaveModal.find('#total_days_h');
+            var $m = $leaveModal.find('#total_days_m');
+            if (!$d.length) return;
+            var days = parseInt($d.val(), 10) || 0;
+            var maxOption = 0;
+            $d.find('option').each(function() { 
+                var v = parseInt($(this).val(), 10); 
+                if (v > maxOption) maxOption = v; 
+            });
+            
+            if (days === maxOption && maxOption > 0) {
+                // Selected maximum days → disable hours/minutes (full days only)
+                $h.val(0).prop('disabled', true);
+                $m.val(0).prop('disabled', true);
+            } else {
+                // Selected partial days (0 or lower option) → enable hours/minutes
+                $h.prop('disabled', false);
+                $m.prop('disabled', false);
+                updateHoursOptionsForEndDate();
+                updateMinutesOptionsForHours();
+            }
+        }
+
+        // When user changes Hours: no longer disable days (business rule changed)
+        function applyTotalDaysStateFromHours() {
+            var $h = $leaveModal.find('#total_days_h');
+            if (!$h.length) return;
+            // Hours selection doesn't affect days anymore - user can select both
+            // Only days selection affects hours/minutes based on max option rule
+        }
+
+        // When user changes Minutes: no longer disable days (business rule changed)
+        function applyTotalDaysStateFromMinutes() {
+            var $m = $leaveModal.find('#total_days_m');
+            if (!$m.length) return;
+            // Minutes selection doesn't affect days anymore - user can select both
+            // Only days selection affects hours/minutes based on max option rule
+        }
+
+        function updateTotalDaysSummary() {
+            var $d = $leaveModal.find('#total_days_d');
+            var $h = $leaveModal.find('#total_days_h');
+            var $m = $leaveModal.find('#total_days_m');
+            var $sum = $leaveModal.find('#total_days_summary');
+            if (!$d.length || !$sum.length) return;
+            var days = parseInt($d.val(), 10) || 0;
+            var hours = parseInt($h.val(), 10) || 0;
+            var minutes = parseInt($m.val(), 10) || 0;
+            var totalMinutes = days * minutesPerDay + hours * 60 + minutes;
+            var decimalDays = minutesPerDay > 0 ? (totalMinutes / minutesPerDay) : 0;
+            var text = (days === 0 && hours === 0 && minutes === 0)
+                ? '{{ __("Duration in days, hours and minutes") }}'
+                : ('≈ ' + decimalDays.toFixed(2) + ' {{ __("days") }}');
+            $sum.text(text);
+        }
 
         // let date = $('.date');
         // date.datepicker({
@@ -632,6 +878,14 @@ const getDateResult = () => {
             $('#leaveModal').modal('show');
         });
 
+        $('#leaveModal').on('shown.bs.modal', function () {
+            getDateResult();
+            updateTotalDaysSummary();
+        });
+        $('#leaveModal').on('show.bs.modal', function () {
+            $leaveModal.find('#total_days_d, #total_days_h, #total_days_m').val(0).prop('disabled', true);
+        });
+
         $('#travel_request').on('click', function () {
             $('#travelModal').modal('show');
         });
@@ -645,17 +899,27 @@ $('#leaveSampleForm').on('submit', function (event) {
     event.preventDefault();
     $(this).find('input[type="submit"]').prop('disabled', true);
 
+    var days = parseInt($('#total_days_d').val(), 10) || 0;
+    var hours = parseInt($('#total_days_h').val(), 10) || 0;
+    var minutes = parseInt($('#total_days_m').val(), 10) || 0;
+    var totalMinutes = days * minutesPerDay + hours * 60 + minutes;
+    $('#diff_date_hidden').val(totalMinutes);
+    $('#total_days_hidden').val(totalMinutes);
 
-    let selectedTotalDays = parseFloat($('#total_days').val());
-
-    // Diff date mein directly dropdown ka value daalo
-    $('#diff_date_hidden').val(selectedTotalDays);
-
-    let allocatedDay = $("#leave_type option:selected").data('day');
+    let allocatedDay = parseFloat($("#leave_type option:selected").data('day')) || 0;
+    let allocatedMinutes = Math.round(allocatedDay * minutesPerDay);
     let html = '';
 
-    if (allocatedDay < totalDaysInput.val()) {
-        html += '<div class="alert alert-danger">' + '<p>Insufficient Allocated Day</p>' + '</div>';
+    if (totalMinutes <= 0) {
+        html += '<div class="alert alert-danger">' + '<p>Please select total days</p>' + '</div>';
+        $('#leaveSampleForm').find('input[type="submit"]').prop('disabled', false);
+        return $('#leave_form_result').html(html).slideDown(300).delay(5000).slideUp(300);
+    }
+
+    if (totalMinutes > allocatedMinutes) {
+        let requestedDays = (totalMinutes / minutesPerDay).toFixed(2);
+        html += '<div class="alert alert-danger">' + '<p>Insufficient leave balance. Available: ' + allocatedDay.toFixed(2) + ' days, Requested: ' + requestedDays + ' days.</p>' + '</div>';
+        $('#leaveSampleForm').find('input[type="submit"]').prop('disabled', false);
         return $('#leave_form_result').html(html).slideDown(300).delay(5000).slideUp(300);
     }
 
@@ -678,10 +942,13 @@ $('#leaveSampleForm').on('submit', function (event) {
                 }
                 html += '</div>';
                 $('#leaveSampleForm').find('input[type="submit"]').prop('disabled', false);
+            } else if (data.remaining_leave || data.error) {
+                html = '<div class="alert alert-danger">' + (data.remaining_leave || data.error) + '</div>';
+                $('#leaveSampleForm').find('input[type="submit"]').prop('disabled', false);
             } else if (data.success) {
                 html += '<div class="alert alert-success">' + data.success + '</div>';
                 $('#leaveSampleForm')[0].reset();
-                $('select').selectpicker('refresh');
+                $('select:not(.total-days-select)').selectpicker('refresh');
                 $('.date').datepicker('update');
             }
 
@@ -721,7 +988,7 @@ $('#leaveSampleForm').on('submit', function (event) {
                     if (data.success) {
                         html = '<div class="alert alert-success">' + data.success + '</div>';
                         $('#travel_sample_form')[0].reset();
-                        $('select').selectpicker('refresh');
+                        $('select:not(.total-days-select)').selectpicker('refresh');
                         $('.date').datepicker('update');
                     }
                     $('#travel_form_result').html(html).slideDown(300).delay(5000).slideUp(300);
@@ -753,7 +1020,7 @@ $('#leaveSampleForm').on('submit', function (event) {
                     if (data.success) {
                         html = '<div class="alert alert-success">' + data.success + '</div>';
                         $('#ticket_sample_form')[0].reset();
-                        $('select').selectpicker('refresh');
+                        $('select:not(.total-days-select)').selectpicker('refresh');
                     }
                     $('#ticket_form_result').html(html).slideDown(300).delay(5000).slideUp(300);
                 }

@@ -19,9 +19,14 @@ if (request()->has('employee_id') && request()->has('should_stream')) {
             $attendance->save();
             
             // If streaming is stopped, clear the image file
+            // Files are in domain root: portal.urtasker.com/streaming/{staffId}.txt
             if (!$shouldStream && request()->has('staff_id')) {
                 $staffId = request()->input('staff_id');
-                $filePath = public_path("streaming/{$staffId}");
+                $filePath = base_path("../../streaming/{$staffId}.txt");
+                // Alternative absolute path
+                if (!file_exists($filePath)) {
+                    $filePath = "/home/urtasker/portal.urtasker.com/streaming/{$staffId}.txt";
+                }
                 if (file_exists($filePath)) {
                     file_put_contents($filePath, '');
                 }
@@ -180,7 +185,11 @@ async function fetchAndUpdateImage() {
     if (!isModalVisible || !currentStaffId) return;
     
     try {
-        const response = await fetch(`/streaming/${currentStaffId}`, {
+        // Files are in domain root: portal.urtasker.com/streaming/{staffId}.txt
+        // Use absolute path to ensure we get domain root, not relative to current path
+        const baseUrl = window.location.origin; // Gets https://portal.urtasker.com
+        const streamingUrl = `${baseUrl}/streaming/${currentStaffId}.txt`;
+        const response = await fetch(streamingUrl, {
             cache: 'no-store',
             headers: {
                 'Cache-Control': 'no-cache',

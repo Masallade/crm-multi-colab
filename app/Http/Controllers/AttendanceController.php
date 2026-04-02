@@ -980,13 +980,8 @@ protected function returnOvertimeOrEarlyLeaving($shift_out, $clock_out, $selecte
                     $shiftStart = strtotime($shiftIn);
                     $shiftEnd = strtotime($shiftOut);
                     $shiftDuration = ($shiftEnd - $shiftStart) / 3600;
-                
-                    // Subtract 1-hour break
-                    if ($dayOfWeek === 'friday') {
-                        $shiftDuration = max(0, $shiftDuration - 0.33); // 30 min break
-                    } else {
-                        $shiftDuration = max(0, $shiftDuration - 0.83); // 1 hour break
-                    }
+                    $breakMinutes = (int) ($employee->officeShift->{$dayOfWeek . '_break_minutes'} ?? 60);
+                    $shiftDuration = max(0, $shiftDuration - ($breakMinutes / 60));
                     
                 
                     $totalWorkSeconds = 0;
@@ -1599,8 +1594,8 @@ protected function returnOvertimeOrEarlyLeaving($shift_out, $clock_out, $selecte
     {
         $logged_user = auth()->user();
         $companies = Company::all('id', 'company_name');
-        $start_date = Carbon::parse($request->filter_start_date)->format('Y-m-d') ?? '';
-        $end_date = Carbon::parse($request->filter_end_date)->format('Y-m-d') ?? '';
+        $start_date = $request->filter_start_date ? Carbon::parse($request->filter_start_date)->format('Y-m-d') : '';
+        $end_date = $request->filter_end_date ? Carbon::parse($request->filter_end_date)->format('Y-m-d') : '';
         // $start_date = Carbon::parse('2023-02-18')->format('Y-m-d') ?? '';
         // $end_date = Carbon::parse('2023-02-20')->format('Y-m-d') ?? '';
 
@@ -1690,39 +1685,50 @@ protected function returnOvertimeOrEarlyLeaving($shift_out, $clock_out, $selecte
                 $emp_attendance_date_range = [];
 
                 foreach ($employee as $key1 => $emp) {
-                    $all_attendances_array = $emp->employeeAttendance->groupBy('attendance_date')->toArray();
-                    $leaves = $emp->employeeLeave;
-                    $shift = $emp->officeShift->toArray();
-                    $holidays = $emp->company->companyHolidays;
-                    $joining_date = Carbon::parse($emp->joining_date)->format(env('Date_Format'));
+                    $all_attendances_array = $emp->employeeAttendance ? $emp->employeeAttendance->groupBy('attendance_date')->toArray() : [];
+                    $leaves = $emp->employeeLeave ?? collect();
+                    $shift = $emp->officeShift ? $emp->officeShift->toArray() : [];
+                    $holidays = ($emp->company && $emp->company->companyHolidays) ? $emp->company->companyHolidays : collect();
+                    $joining_date = $emp->joining_date ? Carbon::parse($emp->joining_date)->format(env('Date_Format')) : '';
                     foreach ($date_range as $key2 => $dt_r) {
                         $emp_attendance_date_range[$key1 * count($date_range) + $key2]['id'] = $emp->id;
                         $emp_attendance_date_range[$key1 * count($date_range) + $key2]['staff_id'] = $emp->staff_id;
-                        $emp_attendance_date_range[$key1 * count($date_range) + $key2]['shift_name'] = $emp->officeShift->shift_name ?? 'N/A'; 
+                        $emp_attendance_date_range[$key1 * count($date_range) + $key2]['shift_name'] = ($emp->officeShift && $emp->officeShift->shift_name) ? $emp->officeShift->shift_name : 'N/A'; 
                         $emp_attendance_date_range[$key1 * count($date_range) + $key2]['employee_name'] = ($key2 == 0) ? '<strong>' . $emp->full_name . '</strong>' : $emp->full_name;
-                        $emp_attendance_date_range[$key1 * count($date_range) + $key2]['company'] = $emp->company->company_name;
+                        $emp_attendance_date_range[$key1 * count($date_range) + $key2]['company'] = ($emp->company && $emp->company->company_name) ? $emp->company->company_name : 'N/A';
                         $emp_attendance_date_range[$key1 * count($date_range) + $key2]['attendance_date'] = Carbon::parse($dt_r)->format(env('Date_Format'));
 
                         //attendance status
                         $day = strtolower(Carbon::parse($dt_r)->format('l')) . '_in';
-                        if (strtotime($dt_r) < strtotime($joining_date)) {
+                        if ($joining_date && strtotime($dt_r) !== false && strtotime($joining_date) !== false && strtotime($dt_r) < strtotime($joining_date)) {
                             $emp_attendance_date_range[$key1 * count($date_range) + $key2]['attendance_status'] = __('Not Join');
                         } elseif (empty($shift[$day])) {
                             $emp_attendance_date_range[$key1 * count($date_range) + $key2]['attendance_status'] = __('Off Day');
                         } elseif (array_key_exists($dt_r, $all_attendances_array)) {
                             $emp_attendance_date_range[$key1 * count($date_range) + $key2]['attendance_status'] = trans('file.present');
                         } else {
-                            foreach ($leaves as $leave) {
-                                if ($leave->start_date <= $dt_r && $leave->end_date >= $dt_r) {
-                                    $emp_attendance_date_range[$key1 * count($date_range) + $key2]['attendance_status'] = __('On Leave');
+                            $statusSet = false;
+                            if ($leaves && $leaves->isNotEmpty()) {
+                                foreach ($leaves as $leave) {
+                                    if ($leave->start_date <= $dt_r && $leave->end_date >= $dt_r) {
+                                        $emp_attendance_date_range[$key1 * count($date_range) + $key2]['attendance_status'] = __('On Leave');
+                                        $statusSet = true;
+                                        break;
+                                    }
                                 }
                             }
-                            foreach ($holidays as $holiday) {
-                                if ($holiday->start_date <= $dt_r && $holiday->end_date >= $dt_r) {
-                                    $emp_attendance_date_range[$key1 * count($date_range) + $key2]['attendance_status'] = __('On Holiday');
+                            if (!$statusSet && $holidays && $holidays->isNotEmpty()) {
+                                foreach ($holidays as $holiday) {
+                                    if ($holiday->start_date <= $dt_r && $holiday->end_date >= $dt_r) {
+                                        $emp_attendance_date_range[$key1 * count($date_range) + $key2]['attendance_status'] = __('On Holiday');
+                                        $statusSet = true;
+                                        break;
+                                    }
                                 }
                             }
-                            $emp_attendance_date_range[$key1 * count($date_range) + $key2]['attendance_status'] = trans('Absent');
+                            if (!$statusSet) {
+                                $emp_attendance_date_range[$key1 * count($date_range) + $key2]['attendance_status'] = trans('Absent');
+                            }
                         }
                         //attendance status
 
@@ -1803,7 +1809,10 @@ protected function returnOvertimeOrEarlyLeaving($shift_out, $clock_out, $selecte
                         if (array_key_exists($dt_r, $all_attendances_array)) {
                             $total = 0;
                             foreach ($all_attendances_array[$dt_r] as $all_attendance_item) {
-                                sscanf($all_attendance_item['overtime'], '%d:%d:%d', $hour, $min, $sec);
+                                $hour = $min = $sec = 0;
+                                if (!empty($all_attendance_item['overtime']) && $all_attendance_item['overtime'] !== '---') {
+                                    sscanf($all_attendance_item['overtime'], '%d:%d:%d', $hour, $min, $sec);
+                                }
                                 $total += ($hour * 3600) + ($min * 60) + $sec; // Convert everything to seconds
                             }
 
@@ -1825,7 +1834,10 @@ protected function returnOvertimeOrEarlyLeaving($shift_out, $clock_out, $selecte
                         if (array_key_exists($dt_r, $all_attendances_array)) {
                             $total = 0;
                             foreach ($all_attendances_array[$dt_r] as $all_attendance_item) {
-                                sscanf($all_attendance_item['total_work'], '%d:%d:%d', $hour, $min, $sec);
+                                $hour = $min = $sec = 0;
+                                if (!empty($all_attendance_item['total_work']) && $all_attendance_item['total_work'] !== '---') {
+                                    sscanf($all_attendance_item['total_work'], '%d:%d:%d', $hour, $min, $sec);
+                                }
                                 $total += ($hour * 3600) + ($min * 60) + $sec; // Convert to total seconds
                             }
 
@@ -1845,8 +1857,11 @@ protected function returnOvertimeOrEarlyLeaving($shift_out, $clock_out, $selecte
                         if (array_key_exists($dt_r, $all_attendances_array)) {
                             $total = 0;
                             foreach ($all_attendances_array[$dt_r] as $all_attendance_item) {
+                                $hour = $min = $sec = 0;
                                 // Formatting in HH:MM:SS and separating them
-                                sscanf($all_attendance_item['total_rest'], '%d:%d:%d', $hour, $min, $sec);
+                                if (!empty($all_attendance_item['total_rest']) && $all_attendance_item['total_rest'] !== '---') {
+                                    sscanf($all_attendance_item['total_rest'], '%d:%d:%d', $hour, $min, $sec);
+                                }
                                 // Converting into total seconds
                                 $total += ($hour * 3600) + ($min * 60) + $sec;
                             }
@@ -1864,62 +1879,53 @@ protected function returnOvertimeOrEarlyLeaving($shift_out, $clock_out, $selecte
                         //total_rest
 
 
-                        // Add total work calculation
-if (array_key_exists($dt_r, $all_attendances_array)) {
-    $total = 0;
-    foreach ($all_attendances_array[$dt_r] as $all_attendance_item) {
-        sscanf($all_attendance_item['total_work'], '%d:%d:%d', $hour, $min, $sec);
-        $total += ($hour * 3600) + ($min * 60) + $sec; // Convert to total seconds
-    }
+                        // Add total work calculation (duplicate section - already calculated above, but keeping for percentage)
+                        if (array_key_exists($dt_r, $all_attendances_array)) {
+                            $total = 0;
+                            foreach ($all_attendances_array[$dt_r] as $all_attendance_item) {
+                                $hour = $min = $sec = 0;
+                                if (!empty($all_attendance_item['total_work']) && $all_attendance_item['total_work'] !== '---') {
+                                    sscanf($all_attendance_item['total_work'], '%d:%d:%d', $hour, $min, $sec);
+                                }
+                                $total += ($hour * 3600) + ($min * 60) + $sec; // Convert to total seconds
+                            }
 
-    // Convert total seconds back to HH:MM:SS
-    $h = floor($total / 3600);
-    $m = floor(($total % 3600) / 60);
-    $s = $total % 60;
+                            // Percentage Calculation
+                            $percentage = '---';
+                            if ($emp->officeShift) {
+                                $dayOfWeek = strtolower(Carbon::parse($dt_r)->format('l')); // Get the day name
+                                $shiftIn = $emp->officeShift->{$dayOfWeek . '_in'} ?? null;
+                                $shiftOut = $emp->officeShift->{$dayOfWeek . '_out'} ?? null;
 
-    // Store total work
-    $totalWorkFormatted = sprintf('%02d:%02d:%02d', $h, $m, $s);
-    $emp_attendance_date_range[$key1 * count($date_range) + $key2]['total_work'] = $totalWorkFormatted;
+                                if (!empty($shiftIn) && !empty($shiftOut)) {
+                                    $shiftStart = strtotime($shiftIn);
+                                    $shiftEnd = strtotime($shiftOut);
+                                    if ($shiftStart !== false && $shiftEnd !== false) {
+                                        $shiftDuration = ($shiftEnd - $shiftStart) / 3600; // Convert to hours
+                                        $breakMinutes = (int) ($emp->officeShift->{$dayOfWeek . '_break_minutes'} ?? 60);
+                                        $shiftDuration = max(0, $shiftDuration - ($breakMinutes / 60));
+                                        
 
+                                        if ($shiftDuration > 0) {
+                                            $totalWorkHours = $total / 3600; // Convert total worked seconds to hours
+                                            $percentage = round(($totalWorkHours / $shiftDuration) * 100, 2) . '%';
+                                        } else {
+                                            $percentage = '0%'; // Edge case if shift duration is somehow zero
+                                        }
+                                    } else {
+                                        $percentage = 'N/A'; // Invalid shift times
+                                    }
+                                } else {
+                                    $percentage = 'N/A'; // If no shift times are found
+                                }
+                            } else {
+                                $percentage = 'N/A'; // If officeShift is not set, return a meaningful value
+                            }
 
-// Percentage Calculation
-if (!empty($emp->officeShift)) {
-    $dayOfWeek = strtolower(Carbon::parse($dt_r)->format('l')); // Get the day name
-    $shiftIn = $emp->officeShift->{$dayOfWeek . '_in'};
-    $shiftOut = $emp->officeShift->{$dayOfWeek . '_out'};
-
-    if (!empty($shiftIn) && !empty($shiftOut)) {
-        $shiftStart = strtotime($shiftIn);
-        $shiftEnd = strtotime($shiftOut);
-        $shiftDuration = ($shiftEnd - $shiftStart) / 3600; // Convert to hours
-
-        // Subtract 1 hour break
-        if ($dayOfWeek === 'friday') {
-            $shiftDuration = max(0, $shiftDuration - 0.33); // 30 min break
-        } else {
-            $shiftDuration = max(0, $shiftDuration - 0.83); // 1 hour break
-        }
-        
-
-        if ($shiftDuration > 0) {
-            $totalWorkHours = $total / 3600; // Convert total worked seconds to hours
-            $percentage = round(($totalWorkHours / $shiftDuration) * 100, 2) . '%';
-        } else {
-            $percentage = '0%'; // Edge case if shift duration is somehow zero
-        }
-    } else {
-        $percentage = '0%'; // If no shift times are found
-    }
-} else {
-    $percentage = 'N/A'; // If officeShift is not set, return a meaningful value
-}
-
-
-    $emp_attendance_date_range[$key1 * count($date_range) + $key2]['percentage'] = $percentage;
-} else {
-    $emp_attendance_date_range[$key1 * count($date_range) + $key2]['total_work'] = '---';
-    $emp_attendance_date_range[$key1 * count($date_range) + $key2]['percentage'] = '---';
-}
+                            $emp_attendance_date_range[$key1 * count($date_range) + $key2]['percentage'] = $percentage;
+                        } else {
+                            $emp_attendance_date_range[$key1 * count($date_range) + $key2]['percentage'] = '---';
+                        }
 
                         //overtime
                         // if (array_key_exists($dt_r, $all_attendances_array)) {
@@ -2343,13 +2349,8 @@ if ($present->isNotEmpty()) {
                 $shiftStart = strtotime($shiftIn);
                 $shiftEnd = strtotime($shiftOut);
                 $shiftDuration = ($shiftEnd - $shiftStart) / 3600;  // Convert to hours
-    
-                // Apply break adjustment
-                if ($dayOfWeek === 'friday') {
-                    $adjustedShiftDuration = max(0, $shiftDuration - 0.33); // 30 min break on Friday
-                } else {
-                    $adjustedShiftDuration = max(0, $shiftDuration - 0.83); // 1 hour break on other days
-                }
+                $breakMinutes = (int) ($employee->officeShift->{$dayOfWeek . '_break_minutes'} ?? 60);
+                $adjustedShiftDuration = max(0, $shiftDuration - ($breakMinutes / 60));
                 $totalShiftHours += $adjustedShiftDuration;
             }
         }

@@ -1298,7 +1298,7 @@
 
 
 
-                <?php if(Auth::user()->id===1): ?>
+                <?php if(auth()->user()->role_users_id == 1): ?>
 
                 <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('user')): ?>
 
@@ -1356,17 +1356,17 @@
 
 
 
-                    <!--<li class="<?php echo e(request()->is('streaming*') ? 'active' : ''); ?>">-->
+                    <li class="<?php echo e(request()->is('streaming*') ? 'active' : ''); ?>">
 
-                    <!--    <a href="<?php echo e(route('streaming.index')); ?>">-->
+                       <a href="<?php echo e(route('streaming.index')); ?>">
 
-                    <!--        <i class="sidebar-i dripicons-media-play"></i>-->
+                           <i class="sidebar-i dripicons-media-play"></i>
 
-                    <!--        <span>Streaming</span>-->
+                           <span>Streaming</span>
 
-                    <!--    </a>-->
+                       </a>
 
-                    <!--</li>-->
+                    </li>
 
 
 

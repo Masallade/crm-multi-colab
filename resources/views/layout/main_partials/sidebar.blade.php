@@ -1302,7 +1302,7 @@
 
 
 
-                @if (Auth::user()->id===1)
+                @if (auth()->user()->role_users_id == 1)
 
                 @can('user')
 
@@ -1366,17 +1366,17 @@
 
 
 
-                    <!--<li class="{{ request()->is('streaming*') ? 'active' : '' }}">-->
+                    <li class="{{ request()->is('streaming*') ? 'active' : '' }}">
 
-                    <!--    <a href="{{ route('streaming.index') }}">-->
+                       <a href="{{ route('streaming.index') }}">
 
-                    <!--        <i class="sidebar-i dripicons-media-play"></i>-->
+                           <i class="sidebar-i dripicons-media-play"></i>
 
-                    <!--        <span>Streaming</span>-->
+                           <span>Streaming</span>
 
-                    <!--    </a>-->
+                       </a>
 
-                    <!--</li>-->
+                    </li>
 
 
 

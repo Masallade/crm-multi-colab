@@ -109,18 +109,25 @@ class OfficeShiftController extends Controller {
 			$data['shift_name'] = $request->shift_name;
 			$data['monday_in'] = $request->monday_in;
 			$data['monday_out'] = $request->monday_out;
+            $data['monday_break_minutes'] = $this->buildBreakMinutes($request, 'monday');
 			$data['tuesday_in'] = $request->tuesday_in;
 			$data['tuesday_out'] = $request->tuesday_out;
+            $data['tuesday_break_minutes'] = $this->buildBreakMinutes($request, 'tuesday');
 			$data['wednesday_in'] = $request->wednesday_in;
 			$data['wednesday_out'] = $request->wednesday_out;
+            $data['wednesday_break_minutes'] = $this->buildBreakMinutes($request, 'wednesday');
 			$data['thursday_in'] = $request->thursday_in;
 			$data['thursday_out'] = $request->thursday_out;
+            $data['thursday_break_minutes'] = $this->buildBreakMinutes($request, 'thursday');
 			$data['friday_in'] = $request->friday_in;
 			$data['friday_out'] = $request->friday_out;
+            $data['friday_break_minutes'] = $this->buildBreakMinutes($request, 'friday');
 			$data['saturday_in'] = $request->saturday_in;
 			$data['saturday_out'] = $request->saturday_out;
+            $data['saturday_break_minutes'] = $this->buildBreakMinutes($request, 'saturday');
 			$data['sunday_in'] = $request->sunday_in;
 			$data['sunday_out'] = $request->sunday_out;
+            $data['sunday_break_minutes'] = $this->buildBreakMinutes($request, 'sunday');
 			$data['company_id'] = $request->company_id;
 
 
@@ -201,18 +208,25 @@ class OfficeShiftController extends Controller {
 			$data['shift_name'] = $request->shift_name;
 			$data['monday_in'] = $request->monday_in;
 			$data['monday_out'] = $request->monday_out;
+            $data['monday_break_minutes'] = $this->buildBreakMinutes($request, 'monday');
 			$data['tuesday_in'] = $request->tuesday_in;
 			$data['tuesday_out'] = $request->tuesday_out;
+            $data['tuesday_break_minutes'] = $this->buildBreakMinutes($request, 'tuesday');
 			$data['wednesday_in'] = $request->wednesday_in;
 			$data['wednesday_out'] = $request->wednesday_out;
+            $data['wednesday_break_minutes'] = $this->buildBreakMinutes($request, 'wednesday');
 			$data['thursday_in'] = $request->thursday_in;
 			$data['thursday_out'] = $request->thursday_out;
+            $data['thursday_break_minutes'] = $this->buildBreakMinutes($request, 'thursday');
 			$data['friday_in'] = $request->friday_in;
 			$data['friday_out'] = $request->friday_out;
+            $data['friday_break_minutes'] = $this->buildBreakMinutes($request, 'friday');
 			$data['saturday_in'] = $request->saturday_in;
 			$data['saturday_out'] = $request->saturday_out;
+            $data['saturday_break_minutes'] = $this->buildBreakMinutes($request, 'saturday');
 			$data['sunday_in'] = $request->sunday_in;
 			$data['sunday_out'] = $request->sunday_out;
+            $data['sunday_break_minutes'] = $this->buildBreakMinutes($request, 'sunday');
 			if ($request->company_id)
 			{
 				$data['company_id'] = $request->company_id;
@@ -275,6 +289,26 @@ class OfficeShiftController extends Controller {
 
 		return response()->json(['success' => __('You are not authorized')]);
 	}
+
+    /**
+     * Build break minutes from hours/minutes inputs for a given day.
+     * Defaults to 60 minutes (1 hour) if nothing is provided.
+     */
+    private function buildBreakMinutes(Request $request, string $day): int
+    {
+        $hoursKey = $day . '_break_hours';
+        $minutesKey = $day . '_break_minutes';
+
+        $hours = (int) $request->input($hoursKey, 1);
+        $minutes = (int) $request->input($minutesKey, 0);
+
+        if ($hours < 0) $hours = 0;
+        if ($hours > 4) $hours = 4;
+        if ($minutes < 0) $minutes = 0;
+        if ($minutes > 59) $minutes = 59;
+
+        return $hours * 60 + $minutes;
+    }
 
 
 }

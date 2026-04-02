@@ -611,19 +611,31 @@ class DashboardController extends Controller {
 
 
 
-		$EmployeeLeaveTypeDetail = EmployeeLeaveTypeDetail::where('employee_id', auth()->user()->id)->first();
-		$travel_types = TravelType::select('id', 'arrangement_type')->get();
-	
-		// Decode the serialized leave type details
-		$leaveTypeDetails = unserialize($EmployeeLeaveTypeDetail->leave_type_detail);
-
-		// Convert array into an associative format (leave_type_id => remaining_allocated_day)
-		$remainingDaysMap = [];
-		if (!empty($leaveTypeDetails)) {
-			foreach ($leaveTypeDetails as $leaveDetail) {
-				$remainingDaysMap[$leaveDetail['leave_type_id']] = $leaveDetail['remaining_allocated_day'];
-			}
-		}
+				// Use $employee->id so leave balances match the displayed employee (same as Settings > Add Employee Leave)
+				$EmployeeLeaveTypeDetail = EmployeeLeaveTypeDetail::where('employee_id', $employee->id)->first();
+				$travel_types = TravelType::select('id', 'arrangement_type')->get();
+		
+				// Decode the serialized leave type details; default to empty array if no record
+				$leaveTypeDetails = $EmployeeLeaveTypeDetail && $EmployeeLeaveTypeDetail->leave_type_detail
+					? unserialize($EmployeeLeaveTypeDetail->leave_type_detail)
+					: [];
+		
+				// Normalize remaining_allocated_day to float so 0.5 is not truncated to 0
+				if (!empty($leaveTypeDetails)) {
+					foreach ($leaveTypeDetails as $key => $leaveDetail) {
+						if (isset($leaveDetail['remaining_allocated_day']) && is_numeric($leaveDetail['remaining_allocated_day'])) {
+							$leaveTypeDetails[$key]['remaining_allocated_day'] = (float) $leaveDetail['remaining_allocated_day'];
+						}
+					}
+				}
+		
+				// Convert array into an associative format (leave_type_id => remaining_allocated_day)
+				$remainingDaysMap = [];
+				if (!empty($leaveTypeDetails)) {
+					foreach ($leaveTypeDetails as $leaveDetail) {
+						$remainingDaysMap[$leaveDetail['leave_type_id']] = $leaveDetail['remaining_allocated_day'];
+					}
+				}
 
 		// dd($leaveTypeDetails);
 
@@ -696,11 +708,13 @@ class DashboardController extends Controller {
                 }
             }
         }
+		$minutes_per_day = 24 * 60; // 1440 = calendar day (so 4d 17h 41m = 6821 min)
+
 		return view('dashboard.employee_dashboard', compact('user', 'employee', 'employee_attendance',
 			'shift_in', 'shift_out', 'shift_name', 'announcements',
 			'employee_award_count', 'holidays', 'leave_types', 'travel_types',
 			'assigned_projects', 'assigned_projects_count',
-			'assigned_tasks', 'assigned_tasks_count', 'assigned_tickets', 'assigned_tickets_count','ipCheck','remainingDaysMap','leaveCountPending','leaveTypeDetails'));
+			'assigned_tasks', 'assigned_tasks_count', 'assigned_tickets', 'assigned_tickets_count','ipCheck','remainingDaysMap','leaveCountPending','leaveTypeDetails', 'minutes_per_day'));
 	
 	
 		

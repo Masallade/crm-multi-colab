@@ -1,18 +1,5 @@
 $(document).ready(function () {
-    // Load Leave Types for Dropdown Filter
-    $.ajax({
-        url: "{{ route('addLeave_employee.index') }}",
-        type: "GET",
-        success: function (response) {
-            let select = $('#leaveTypeFilter');
-            select.append('<option value="">All Leaves</option>');
-            response.leaveTypes.forEach(type => {
-                select.append(`<option value="${type.leave_type}">${type.leave_type}</option>`);
-            });
-            select.selectpicker('refresh');
-        }
-    });
-
+    // Leave type filter is populated from blade ($leaveTypes). DataTable loads from addLeave_employee.index (AJAX).
     function loadDataTable(leaveType = '') {
         $('#addLeave_employee-table').DataTable().clear().destroy();
         
@@ -48,46 +35,114 @@ $(document).ready(function () {
         loadDataTable(leaveType);
     });
 
-    // 🚀 Update Button Functionality
+    // 📊 Leave Calculator
+    $('#calculateLeaveBtn').on('click', function () {
+        const MINUTES_PER_CALENDAR_DAY = 1440; // 24 hours
+
+        // Get inputs
+        let shiftHours = parseInt($('#calc_shift_hours').val(), 10) || 0;
+        let shiftMinutes = parseInt($('#calc_shift_minutes').val(), 10) || 0;
+        let workDays = parseFloat($('#calc_work_days').val()) || 0;
+
+        // Validate inputs
+        if (shiftHours === 0 && shiftMinutes === 0) {
+            alert('{{ __("Please enter employee shift time") }}');
+            return;
+        }
+        if (workDays <= 0) {
+            alert('{{ __("Please enter number of work days") }}');
+            return;
+        }
+
+        // Calculate shift duration in minutes
+        let shiftMinutesTotal = shiftHours * 60 + shiftMinutes;
+
+        // Calculate total work minutes
+        let totalWorkMinutes = workDays * shiftMinutesTotal;
+
+        // Convert to calendar days
+        let totalCalendarDays = totalWorkMinutes / MINUTES_PER_CALENDAR_DAY;
+
+        // Break down into Days, Hours, Minutes
+        let days = Math.floor(totalCalendarDays);
+        let remainingMinutes = Math.round((totalCalendarDays - days) * MINUTES_PER_CALENDAR_DAY);
+        let hours = Math.floor(remainingMinutes / 60);
+        let minutes = remainingMinutes % 60;
+
+        // Display result
+        let resultText = days + ' {{ __("Days") }}, ' + hours + ' {{ __("Hours") }}, ' + minutes + ' {{ __("Minutes") }}';
+        $('#calc_result_text').html('<i class="fa fa-check-circle"></i> ' + resultText);
+        $('#calc_result').removeClass('alert-info').addClass('alert-success');
+
+        // Show explanation
+        let explanation = '<ul class="mb-0">';
+        explanation += '<li>{{ __("Shift Duration") }}: ' + shiftHours + 'h ' + shiftMinutes + 'm = ' + shiftMinutesTotal + ' {{ __("minutes") }}</li>';
+        explanation += '<li>{{ __("Work Days") }}: ' + workDays + ' {{ __("days") }}</li>';
+        explanation += '<li>{{ __("Total Work Minutes") }}: ' + workDays + ' × ' + shiftMinutesTotal + ' = ' + totalWorkMinutes + ' {{ __("minutes") }}</li>';
+        explanation += '<li>{{ __("Calendar Days") }}: ' + totalWorkMinutes + ' ÷ ' + MINUTES_PER_CALENDAR_DAY + ' = ' + totalCalendarDays.toFixed(4) + ' {{ __("days") }}</li>';
+        explanation += '<li><strong>{{ __("Enter in table") }}: ' + days + ' {{ __("Days") }}, ' + hours + ' {{ __("Hours") }}, ' + minutes + ' {{ __("Minutes") }}</strong></li>';
+        explanation += '</ul>';
+        
+        $('#calc_explanation_text').html(explanation);
+        $('#calc_explanation').slideDown(300);
+    });
+
+    // Reset calculator result when inputs change
+    $('#calc_shift_hours, #calc_shift_minutes, #calc_work_days').on('change input', function() {
+        $('#calc_result_text').text('{{ __("Click Calculate") }}');
+        $('#calc_result').removeClass('alert-success').addClass('alert-info');
+        $('#calc_explanation').slideUp(300);
+    });
+
+    // 🚀 Update Button: collect Days, Hours, Minutes per row and send to server (use same row for remaining to avoid wrong cell)
     $('#updateLeaveButton').on('click', function () {
         let updates = [];
-        $('.allocated-day, .remaining-allocated-day').each(function () {
-            let employeeId = $(this).data('employee-id');
-            let leaveTypeId = $(this).data('leave-type-id');
-            let allocatedDay = $('input.allocated-day[data-employee-id="' + employeeId + '"][data-leave-type-id="' + leaveTypeId + '"]').val();
-            let remainingDay = $('input.remaining-allocated-day[data-employee-id="' + employeeId + '"][data-leave-type-id="' + leaveTypeId + '"]').val();
+        $('.allocated-dhm').each(function () {
+            let $allocated = $(this);
+            let $tableRow = $allocated.closest('tr');
+            let employeeId = $allocated.data('employee-id');
+            let leaveTypeId = $allocated.data('leave-type-id');
+            let allocatedDays   = parseInt($allocated.find('.allocated-days').val(), 10) || 0;
+            let allocatedHours  = parseInt($allocated.find('.allocated-hours').val(), 10) || 0;
+            let allocatedMinutes = parseInt($allocated.find('.allocated-mins').val(), 10) || 0;
+            let $remaining = $tableRow.find('.remaining-dhm');
+            let remainingDays   = parseInt($remaining.find('.remaining-days').val(), 10) || 0;
+            let remainingHours  = parseInt($remaining.find('.remaining-hours').val(), 10) || 0;
+            let remainingMinutes = parseInt($remaining.find('.remaining-mins').val(), 10) || 0;
 
             updates.push({
                 employee_id: employeeId,
                 leave_type_id: leaveTypeId,
-                allocated_day: allocatedDay,
-                remaining_allocated_day: remainingDay
+                allocated_days: allocatedDays,
+                allocated_hours: allocatedHours,
+                allocated_minutes: allocatedMinutes,
+                remaining_days: remainingDays,
+                remaining_hours: remainingHours,
+                remaining_minutes: remainingMinutes
             });
         });
 
-$.ajax({
-    url: '{{ route('addLeave_employee.update_leave') }}',
-    type: "POST",
-    headers: {
-        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') // Add CSRF token
-    },
-    data: {
-        updates: updates
-    },
-    success: function(response) {
-        alert(response.success);
-        $('#addLeave_employee-table').DataTable().ajax.reload(); // Reload DataTable after update
-        location.reload();
-    },
-    error: function(xhr) {
-        console.error(xhr.responseJSON);
-        alert("Update failed: " + xhr.responseJSON.message);
-        location.reload();
-    }
-});
-
-
-
+        $.ajax({
+            url: '{{ route('addLeave_employee.update_leave') }}',
+            type: "POST",
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            data: {
+                updates: updates,
+                _token: '{{ csrf_token() }}'
+            },
+            success: function(response) {
+                alert(response.success);
+                $('#addLeave_employee-table').DataTable().ajax.reload();
+            },
+            error: function(xhr) {
+                console.error(xhr.responseJSON);
+                var msg = (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Update failed';
+                alert(msg);
+                $('#addLeave_employee-table').DataTable().ajax.reload();
+            }
+        });
     });
 });
 
@@ -135,7 +190,11 @@ url:target,
 dataType:"json",
 success:function(html){
 $('#leave_type_edit').val(html.data.addLeave_employee);
-$('#allocated_day_edit').val(html.data.allocated_day);
+// Set select value - format to match option values (e.g., 12.0 -> 12.0, 12.5 -> 12.5)
+var allocatedDay = parseFloat(html.data.allocated_day);
+if (!isNaN(allocatedDay)) {
+    $('#allocated_day_edit').val(allocatedDay.toFixed(1));
+}
 
 $('#hidden_leave_id').val(html.data.id);
 $('#LeaveEditModal').modal('show');
@@ -147,7 +206,7 @@ $('#LeaveEditModal').modal('show');
 $('#leave_type_edit_submit').on('click', function(event) {
 event.preventDefault();
 let leave_type_edit = $('input[name="leave_type_edit"]').val();
-let allocated_day_edit = $('input[name="allocated_day_edit"]').val();
+let allocated_day_edit = $('select[name="allocated_day_edit"]').val();
 let hidden_leave_id= $('#hidden_leave_id').val();
 
 $.ajax({

@@ -552,6 +552,129 @@
                             <?php echo e(__('Core HR')); ?>
 
                             <hr>
+                            
+                            <!-- Resignation Status Section -->
+                            <div class="row mb-4">
+                                <div class="col-md-12">
+                                    <h5><?php echo e(__('My Resignation Status')); ?></h5>
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <?php
+                                                $user = auth()->user();
+                                                $employee = \App\Models\Employee::where('id', $user->id)->first();
+                                                $resignation = \App\Models\Resignation::where('employee_id', $user->id)
+                                                    ->where('status', '!=', 'deleted')
+                                                    ->orderBy('created_at', 'desc')
+                                                    ->first();
+                                            ?>
+                                            
+                                            <?php if($resignation): ?>
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <h6><strong><?php echo e(__('Resignation Details')); ?></strong></h6>
+                                                        <p><strong><?php echo e(__('Notice Date')); ?>:</strong> <?php echo e($resignation->notice_date); ?></p>
+                                                        <p><strong><?php echo e(__('Resignation Date')); ?>:</strong> <?php echo e($resignation->resignation_date); ?></p>
+                                                        <p><strong><?php echo e(__('Description')); ?>:</strong> <?php echo e($resignation->description); ?></p>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <h6><strong><?php echo e(__('Approval Status')); ?></strong></h6>
+                                                        
+                                                        <!-- Overall Status -->
+                                                        <div class="mb-3">
+                                                            <span class="badge badge-<?php echo e($resignation->status == 'approved' ? 'success' : ($resignation->status == 'rejected' ? 'danger' : 'warning')); ?> badge-lg">
+                                                                <?php echo e(ucfirst($resignation->status)); ?>
+
+                                                            </span>
+                                                        </div>
+                                                        
+                                                        <!-- HR Approval Status -->
+                                                        <div class="mb-2">
+                                                            <strong><?php echo e(__('HR Approval')); ?>:</strong>
+                                                            <?php if($resignation->hr_approved): ?>
+                                                                <span class="badge badge-success"><?php echo e(__('Approved')); ?></span>
+                                                                <?php if($resignation->hr_approved_at): ?>
+                                                                    <small class="text-muted">(<?php echo e(\Carbon\Carbon::parse($resignation->hr_approved_at)->format('d-m-Y H:i')); ?>)</small>
+                                                                <?php endif; ?>
+                                                            <?php else: ?>
+                                                                <span class="badge badge-warning"><?php echo e(__('Pending')); ?></span>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                        
+                                                        <!-- Admin Approval Status -->
+                                                        <div class="mb-2">
+                                                            <strong><?php echo e(__('Admin Approval')); ?>:</strong>
+                                                            <?php if($resignation->admin_approved): ?>
+                                                                <span class="badge badge-success"><?php echo e(__('Approved')); ?></span>
+                                                                <?php if($resignation->admin_approved_at): ?>
+                                                                    <small class="text-muted">(<?php echo e(\Carbon\Carbon::parse($resignation->admin_approved_at)->format('d-m-Y H:i')); ?>)</small>
+                                                                <?php endif; ?>
+                                                            <?php else: ?>
+                                                                <span class="badge badge-warning"><?php echo e(__('Pending')); ?></span>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                        
+                                                        <!-- Approval Notes -->
+                                                        <?php if($resignation->hr_approval_notes): ?>
+                                                            <div class="mt-3">
+                                                                <strong><?php echo e(__('HR Notes')); ?>:</strong>
+                                                                <p class="text-muted"><?php echo e($resignation->hr_approval_notes); ?></p>
+                                                            </div>
+                                                        <?php endif; ?>
+                                                        
+                                                        <?php if($resignation->admin_approval_notes): ?>
+                                                            <div class="mt-3">
+                                                                <strong><?php echo e(__('Admin Notes')); ?>:</strong>
+                                                                <p class="text-muted"><?php echo e($resignation->admin_approval_notes); ?></p>
+                                                            </div>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Progress Bar -->
+                                                <div class="mt-4">
+                                                    <h6><strong><?php echo e(__('Approval Progress')); ?></strong></h6>
+                                                    <div class="progress" style="height: 25px;">
+                                                        <?php
+                                                            $progress = 0;
+                                                            if($resignation->hr_approved) $progress += 50;
+                                                            if($resignation->admin_approved) $progress += 50;
+                                                        ?>
+                                                        <div class="progress-bar bg-<?php echo e($progress == 100 ? 'success' : ($progress > 0 ? 'info' : 'warning')); ?>" 
+                                                             role="progressbar" style="width: <?php echo e($progress); ?>%" 
+                                                             aria-valuenow="<?php echo e($progress); ?>" aria-valuemin="0" aria-valuemax="100">
+                                                            <?php echo e($progress); ?>% <?php echo e(__('Complete')); ?>
+
+                                                        </div>
+                                                    </div>
+                                                    <div class="mt-2">
+                                                        <small class="text-muted">
+                                                            <?php if($progress == 100): ?>
+                                                                <?php echo e(__('Your resignation has been fully approved!')); ?>
+
+                                                            <?php elseif($progress == 50): ?>
+                                                                <?php echo e(__('HR has approved. Waiting for Admin approval.')); ?>
+
+                                                            <?php else: ?>
+                                                                <?php echo e(__('Waiting for HR and Admin approval.')); ?>
+
+                                                            <?php endif; ?>
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                            <?php else: ?>
+                                                <div class="text-center">
+                                                    <p class="text-muted"><?php echo e(__('No resignation submitted yet.')); ?></p>
+                                                    <a href="<?php echo e(route('resignations.index')); ?>" class="btn btn-primary">
+                                                        <?php echo e(__('Submit Resignation')); ?>
+
+                                                    </a>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
                         <?php echo $__env->make('employee.core_hr.award.index', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
 
                         <!--Contents for Contact ends here-->

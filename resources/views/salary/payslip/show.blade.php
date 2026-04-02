@@ -327,8 +327,8 @@
                                                     @forelse ($leaveTypeUnserialize as $item)
                                                         <tr>
                                                             <td> {{ $item['leave_type'] }} </td>
-                                                            <td> {{ $item['allocated_day'] }} </td>
-                                                            <td> {{ $item['remaining_allocated_day'] }} </td>
+                                                            <td> {{ is_numeric($item['allocated_day']) ? number_format((float)$item['allocated_day'], 1, '.', '') : $item['allocated_day'] }} </td>
+                                                            <td> {{ is_numeric($item['remaining_allocated_day']) ? number_format((float)$item['remaining_allocated_day'], 1, '.', '') : $item['remaining_allocated_day'] }} </td>
                                                         </tr>
                                                     @empty
                                                         <tr>

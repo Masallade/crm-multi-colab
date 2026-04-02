@@ -213,7 +213,13 @@ class StreamingController extends Controller
     {
         try {
             // Define the path to the image.txt file
-            $imagePath = public_path("streaming/image.txt");
+            // Files are in domain root: portal.urtasker.com/streaming/image.txt
+            $imagePath = base_path("../../streaming/image.txt");
+            
+            // Alternative absolute path if relative doesn't work
+            if (!file_exists($imagePath)) {
+                $imagePath = "/home/urtasker/portal.urtasker.com/streaming/image.txt";
+            }
             
             // Check if the file exists
             if (!file_exists($imagePath)) {
@@ -233,6 +239,76 @@ class StreamingController extends Controller
                 
         } catch (\Exception $e) {
             \Log::error('Error fetching image data', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile()
+            ]);
+            return response()->json(['error' => 'Failed to fetch image data'], 500);
+        }
+    }
+
+    public function getStaffImage($staffId)
+    {
+        \Log::info('getStaffImage method called', [
+            'staff_id' => $staffId,
+            'request_url' => request()->url(),
+            'request_path' => request()->path()
+        ]);
+        
+        try {
+            // Define the path to the staff-specific image file
+            // Files are in domain root: portal.urtasker.com/streaming/{staffId}.txt
+            // Laravel app is at: portal.urtasker.com/v2.2/crm/
+            // So we need to go up two directories: ../../
+            $imagePath = base_path("../../streaming/{$staffId}.txt");
+            
+            // Alternative absolute path if relative doesn't work
+            if (!file_exists($imagePath)) {
+                $imagePath = "/home/urtasker/portal.urtasker.com/streaming/{$staffId}.txt";
+            }
+            
+            \Log::info('Looking for image file', [
+                'staff_id' => $staffId,
+                'file_path' => $imagePath,
+                'file_exists' => file_exists($imagePath)
+            ]);
+            
+            // Check if the file exists
+            if (!file_exists($imagePath)) {
+                \Log::info('Staff image file not found', [
+                    'staff_id' => $staffId,
+                    'file_path' => $imagePath
+                ]);
+                return response()->json(['error' => 'Image not found'], 404);
+            }
+            
+            // Read the base64 data from the file
+            $base64Data = file_get_contents($imagePath);
+            
+            if (empty($base64Data)) {
+                \Log::info('Staff image file is empty', [
+                    'staff_id' => $staffId,
+                    'file_path' => $imagePath
+                ]);
+                return response()->json(['error' => 'No image data available'], 404);
+            }
+            
+            \Log::info('Successfully fetched staff image', [
+                'staff_id' => $staffId,
+                'data_length' => strlen($base64Data)
+            ]);
+            
+            // Return the base64 data as plain text
+            return response($base64Data, 200)
+                ->header('Content-Type', 'text/plain')
+                ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                ->header('Pragma', 'no-cache')
+                ->header('Expires', '0');
+                
+        } catch (\Exception $e) {
+            \Log::error('Error fetching staff image data', [
+                'staff_id' => $staffId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'line' => $e->getLine(),

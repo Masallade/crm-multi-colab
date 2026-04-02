@@ -34,11 +34,21 @@ class EmployeeLeaveTypeDetailController extends Controller
                 })
                 ->addColumn('allocated_day', function ($row)
                 {
-                    return $row['allocated_day'];
+                    $value = $row['allocated_day'] ?? 0;
+                    // Return raw numeric value for JavaScript processing
+                    return is_numeric($value) ? (float)$value : 0;
                 })
                 ->addColumn('remaining', function ($row)
                 {
-                    return $row['remaining_allocated_day'];
+                    $value = $row['remaining_allocated_day'] ?? 0;
+                    // Return raw numeric value for JavaScript processing
+                    return is_numeric($value) ? (float)$value : 0;
+                })
+                ->addColumn('remaining_allocated_day', function ($row)
+                {
+                    // Add this column for compatibility with leave form JavaScript
+                    $value = $row['remaining_allocated_day'] ?? 0;
+                    return is_numeric($value) ? (float)$value : 0;
                 })
                 ->make(true);
         }

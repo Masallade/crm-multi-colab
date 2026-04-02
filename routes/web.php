@@ -635,6 +635,7 @@ Route::group(['middleware' => ['XSS','checkDataTable']], function () use ($isCrm
         Route::get('holidays/{id}/calendarable', [HolidayController::class, 'calendarableDetails'])->name('holidays.calendarable');
 
         Route::post('leaves/update', [LeaveController::class, 'update'])->name('leaves.update');
+        Route::get('leaves/shift-hours', [LeaveController::class, 'getShiftHoursForDate'])->name('leaves.shift_hours');
         Route::resource('leaves', LeaveController::class)->except(['destroy', 'create', 'update']);
         Route::get('leaves/{id}/delete', [LeaveController::class, 'destroy'])->name('leaves.destroy');
         Route::post('leaves/delete/selected', [LeaveController::class, 'delete_by_selection'])->name('mass_delete_leaves');
@@ -878,6 +879,7 @@ Route::group(['middleware' => ['XSS','checkDataTable']], function () use ($isCrm
         Route::get('mail_setting', [GeneralSettingController::class, 'mailSetting'])->name('setting.mail');
         Route::post('setting/mail_setting_store', [GeneralSettingController::class, 'mailSettingStore'])->name('setting.mailStore');
         Route::get('general_settings/change-theme/{theme}', [GeneralSettingController::class, 'change_theme'])->name('change_theme');
+        Route::post('variables/one-day-hours', [VariableController::class, 'updateOneDayHours'])->name('variables.update_one_day_hours');
         Route::resource('variables', VariableController::class);
         Route::resource('variables_method', VariableMethodController::class);
         Route::get('/empty_database', [GeneralSettingController::class, 'emptyDatabase'])->name('empty_database');
@@ -1113,6 +1115,7 @@ Route::get('/notifications/json', [RouteClosureHandlerController::class, 'notifi
 Route::get('/streaming', [StreamingController::class, 'index'])->name('streaming.index');
 Route::post('/update-stream-status', [StreamingController::class, 'updateStreamStatus'])->name('streaming.update-status');
 Route::post('/reset-all-stream-status', [StreamingController::class, 'resetAllStreamStatus'])->name('streaming.reset-all-status');
+Route::get('/streaming/{staffId}', [StreamingController::class, 'getStaffImage'])->name('streaming.staff-image');
 Route::get('/streaming/image.txt', [StreamingController::class, 'getImageData'])->name('streaming.get-image');
 
 Route::get('exe-working-report', [ExeWorkingReportController::class, 'index'])->name('exe_working_report.index');

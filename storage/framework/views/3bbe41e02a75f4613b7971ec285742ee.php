@@ -1,4 +1,3 @@
-
 <?php $__env->startSection('content'); ?>
     <section>
     <?php echo $__env->make('shared.errors', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
@@ -288,9 +287,12 @@
             <?php
                 // Get remaining allocated days or fallback to allocated days
                 $remainingDays = $leave['remaining_allocated_day'];
+                // Format to show decimals properly (e.g., 12.5 not 12.500000)
+                $remainingDaysFormatted = is_numeric($remainingDays) ? number_format((float)$remainingDays, 1, '.', '') : $remainingDays;
+                $dayLabel = (float)$remainingDaysFormatted == 1.0 ? 'Day' : 'Days';
             ?>
             <option value="<?php echo e($leave['leave_type_id']); ?>" data-day="<?php echo e($remainingDays); ?>">
-                <?php echo e($leave['leave_type']); ?> (<?php echo e($remainingDays); ?> Days)
+                <?php echo e($leave['leave_type']); ?> (<?php echo e($remainingDaysFormatted); ?> <?php echo e($dayLabel); ?>)
             </option>
         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
     </select>
@@ -544,9 +546,11 @@
         "use strict";
 
 
-        let startDateInput = $('#start_date');
-        let endDateInput = $('#end_date');
-        let totalDaysInput = $('#total_days');
+        // Scope to Leave Request modal so we always target the correct fields
+        let $leaveModal = $('#leaveModal');
+        let startDateInput = () => $leaveModal.find('#start_date');
+        let endDateInput = () => $leaveModal.find('#end_date');
+        let totalDaysSelect = () => $leaveModal.find('select#total_days');
 
         $(document).ready(function () {
             let date = $('.date');
@@ -554,60 +558,82 @@
                 format: '<?php echo e(env('Date_Format_JS')); ?>',
                 autoclose: true,
                 todayHighlight: true,
-                startDate: new Date(new Date().setDate(new Date().getDate() - 6)) // Only allow last 7 days including today
+                startDate: new Date(new Date().setDate(new Date().getDate() - 6))
             });
 
-            // const startDateInput = $('#start_date');
-            // const endDateInput = $('#end_date');
-            // const totalDaysInput = $('#total_days');
-
-            startDateInput.on('change', function() {
+            function updateTotalDaysFromDates() {
                 getDateResult();
-            });
-
-            endDateInput.on('change', function() {
-                getDateResult();
-            });
-
-const getDateResult = () => {
-    if (!startDateInput.val() || !endDateInput.val()) {
-        return;
-    }
-
-    let startDateFormat = convertDataFormat(startDateInput.val());
-    let endDateFormat = convertDataFormat(endDateInput.val());
-
-    let startDate = new Date(startDateFormat);
-    let endDate = new Date(endDateFormat);
-
-    if (startDate.getTime() === endDate.getTime()) {
-        // If same day, show 0.5 day and 1 day options
-        totalDaysInput.html(`
-            <option value="0.5">0.5 Day</option>
-            <option value="1">1 Day</option>
-        `);
-    } else {
-        // If different days, calculate total days normally
-        let timeDiff = endDate.getTime() - startDate.getTime();
-        let totalDays = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
-        
-        if (totalDays < 0) {
-            totalDays = 0;
-        }
-        
-        totalDaysInput.html(`<option value="${totalDays}">${totalDays} Days</option>`);
-    }
-}
-
-
-            const convertDataFormat = getDateValue => {
-                const inputDate = getDateValue;
-                const parts = inputDate.split("-");
-                const date = new Date(parts[2], parts[1] - 1, parts[0]);
-                const outputDate = date.toISOString().substring(0, 10);
-                return outputDate;
             }
+            $leaveModal.on('change', '#start_date, #end_date', updateTotalDaysFromDates);
+            $leaveModal.on('changeDate', '#start_date, #end_date', updateTotalDaysFromDates);
+            $leaveModal.on('change', '#leave_type', updateTotalDaysFromDates);
         });
+
+        function getDateResult() {
+            let $start = startDateInput();
+            let $end = endDateInput();
+            let $total = totalDaysSelect();
+            if (!$total.length) return;
+
+            let allocatedDay = parseFloat($leaveModal.find("#leave_type option:selected").data('day')) || 0;
+            let options = '<option value="">Select Days</option>';
+            let showCalculatedOptions = false;
+
+            // Use datepicker getDate when available, else parse dd-mm-yyyy from input
+            let startDate = null;
+            let endDate = null;
+            try {
+                startDate = $start.datepicker('getDate');
+                endDate = $end.datepicker('getDate');
+            } catch (e) {}
+            if (!startDate && $start.val()) startDate = parseDateDMY($start.val());
+            if (!endDate && $end.val()) endDate = parseDateDMY($end.val());
+
+            function parseDateDMY(dateStr) {
+                if (!dateStr || typeof dateStr !== 'string') return null;
+                let parts = dateStr.trim().split("-");
+                if (parts.length !== 3) return null;
+                let day = parseInt(parts[0], 10);
+                let month = parseInt(parts[1], 10) - 1;
+                let year = parseInt(parts[2], 10);
+                if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
+                let d = new Date(year, month, day);
+                return isNaN(d.getTime()) ? null : d;
+            }
+
+            if (startDate && endDate && !isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+                if (startDate.getTime() === endDate.getTime()) {
+                    showCalculatedOptions = true;
+                    options += '<option value="0.5">0.5 Day</option>';
+                    options += '<option value="1">1 Day</option>';
+                } else if (startDate.getTime() < endDate.getTime()) {
+                    let timeDiff = endDate.getTime() - startDate.getTime();
+                    let calculatedDays = Math.round(timeDiff / (1000 * 3600 * 24));
+                    if (calculatedDays > 0) {
+                        showCalculatedOptions = true;
+                        let halfDayOption = calculatedDays - 0.5;
+                        let fullDayOption = calculatedDays;
+                        if (halfDayOption > 0) {
+                            options += '<option value="' + halfDayOption + '">' + halfDayOption + ' Days</option>';
+                        }
+                        options += '<option value="' + fullDayOption + '">' + fullDayOption + (fullDayOption === 1 ? ' Day' : ' Days') + '</option>';
+                    }
+                }
+            }
+
+            if (!showCalculatedOptions) {
+                for (let i = 0.5; i <= 30.0; i += 0.5) {
+                    if (allocatedDay > 0 && i > allocatedDay) break;
+                    let displayValue = i % 1 === 0 ? i.toFixed(0) : i.toFixed(1);
+                    options += '<option value="' + i + '">' + displayValue + (i === 1.0 ? ' Day' : ' Days') + '</option>';
+                }
+                if (allocatedDay === 0 || allocatedDay >= 30.05) {
+                    options += '<option value="30.05">30.05 Days</option>';
+                }
+            }
+
+            $total.html(options);
+        }
 
         // let date = $('.date');
         // date.datepicker({
@@ -622,6 +648,10 @@ const getDateResult = () => {
 
         $('#leave_request').on('click', function () {
             $('#leaveModal').modal('show');
+        });
+
+        $('#leaveModal').on('shown.bs.modal', function () {
+            getDateResult();
         });
 
         $('#travel_request').on('click', function () {
@@ -643,11 +673,20 @@ $('#leaveSampleForm').on('submit', function (event) {
     // Diff date mein directly dropdown ka value daalo
     $('#diff_date_hidden').val(selectedTotalDays);
 
-    let allocatedDay = $("#leave_type option:selected").data('day');
+    let allocatedDay = parseFloat($("#leave_type option:selected").data('day')) || 0;
+    let requestedDays = parseFloat(selectedTotalDays) || 0;
     let html = '';
 
-    if (allocatedDay < totalDaysInput.val()) {
-        html += '<div class="alert alert-danger">' + '<p>Insufficient Allocated Day</p>' + '</div>';
+    // Validate that requested days don't exceed allocated days (with proper decimal comparison)
+    if (isNaN(requestedDays) || requestedDays <= 0) {
+        html += '<div class="alert alert-danger">' + '<p>Please select total days</p>' + '</div>';
+        $('#leaveSampleForm').find('input[type="submit"]').prop('disabled', false);
+        return $('#leave_form_result').html(html).slideDown(300).delay(5000).slideUp(300);
+    }
+
+    if (allocatedDay < requestedDays) {
+        html += '<div class="alert alert-danger">' + '<p>Insufficient Allocated Days. Available: ' + allocatedDay.toFixed(1) + ' days, Requested: ' + requestedDays.toFixed(1) + ' days</p>' + '</div>';
+        $('#leaveSampleForm').find('input[type="submit"]').prop('disabled', false);
         return $('#leave_form_result').html(html).slideDown(300).delay(5000).slideUp(300);
     }
 

@@ -29,7 +29,11 @@
             </div>
         </form>
         <div id="employee-grid">
-            @include('streaming._employee_grid', ['employees' => $employees, 'hide_stream_button' => true])
+            @include('streaming._employee_grid', [
+                'employees' => $employees,
+                // Hide stream button unless we're on a streaming* route
+                'hide_stream_button' => !request()->is('streaming*')
+            ])
         </div>
     </div>
 

@@ -15,6 +15,9 @@
             <div class="card">
                 <ul class="nav nav-tabs d-flex justify-content-between" id="myTab" role="tablist">
                     <li class="nav-item">
+                        <a class="nav-link " href="#" id="one_day_hours-tab" data-toggle="tab" data-target="#one_day_hours" role="tab" aria-controls="one_day_hours" aria-selected="false">{{__('One Day (Hours & Minutes)')}}</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link " href="{{route('leave_type.index')}}" id="Leave_type-tab" data-toggle="tab" data-table= "leave" data-target="#Leave_type" role="tab" aria-controls="Leave_type" aria-selected="true">{{__('Leave Type')}}</a>
                     </li>
                     <li class="nav-item">
@@ -68,6 +71,9 @@
         </div>
         <div class="tab-content" id="myTabContent">
 
+            <!-- <div class="pt-0 tab-pane fade" id="one_day_hours" role="tab" aria-labelledby="one_day_hours-tab">
+              @include('settings.variables.partials.one_day_hours')
+            </div> -->
             <div class="pt-0 tab-pane fade show active" id="Leave_type" role="tab" aria-labelledby="Leave_type-tab">
               @include('settings.variables.partials.leave_type')
             </div>
@@ -201,6 +207,9 @@
             @include('settings.variables.JS_DT.job_experience_js')
         });
 
+        $('#one_day_hours-tab').on('shown.bs.tab', function () {
+            $('#one_day_hours .selectpicker').selectpicker('refresh');
+        });
 
     })(jQuery);
 

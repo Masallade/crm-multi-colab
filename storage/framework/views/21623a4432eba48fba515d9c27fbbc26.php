@@ -8,6 +8,45 @@ $loggedEmployee = \App\Models\Employee::find($loggedUser->id);
 
 
 <?php $__env->startSection('content'); ?>
+<style>
+    /* Ensure disabled textareas are visible and readable */
+    textarea#leave_reason:disabled {
+        background-color: #f5f5f5 !important;
+        opacity: 1 !important;
+        color: #495057 !important;
+        cursor: not-allowed;
+    }
+    /* Force description container to always be visible */
+    #leave_reason_container {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        height: auto !important;
+        overflow: visible !important;
+    }
+    /* Force description field to always be visible */
+    #leave_reason {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        min-height: 60px !important;
+        width: 100% !important;
+    }
+    /* Force label to always be visible */
+    label[for="leave_reason"] {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    /* Override any Bootstrap hiding classes */
+    #leave_reason_container.d-none,
+    #leave_reason_container.hidden,
+    #leave_reason.d-none,
+    #leave_reason.hidden {
+        display: block !important;
+        visibility: visible !important;
+    }
+</style>
     <section>
         <div class="container-fluid"><span id="general_result"></span></div>
         <div class="container-fluid mb-3">
@@ -146,7 +185,10 @@ $loggedEmployee = \App\Models\Employee::find($loggedUser->id);
                             </div>
                             <div class="col-md-6 form-group">
                                 <label><?php echo e(__('Total Days')); ?></label>
-                                <input type="text" readonly id="total_days" class="form-control">
+                                <select id="total_days" name="total_days" class="form-control" style="display:none;">
+                                    <option value=""><?php echo e(__('Select')); ?></option>
+                                </select>
+                                <input type="text" readonly id="total_days_readonly" class="form-control" style="display:none;">
                             </div>
 
                             <div class="col-md-6 form-group">
@@ -158,9 +200,9 @@ $loggedEmployee = \App\Models\Employee::find($loggedUser->id);
                                 <input type="text" name="end_date" id="end_date" class="form-control test date" value="" readonly>
                             </div>
 
-                            <div class="col-md-6 form-group">
+                            <div class="col-md-6 form-group" id="leave_reason_container">
                                 <label for="leave_reason"><?php echo e(trans('file.Description')); ?></label>
-                                <textarea class="form-control" id="leave_reason" name="leave_reason" rows="3"></textarea>
+                                <textarea class="form-control" id="leave_reason" name="leave_reason" rows="3" style="width: 100%; display: block !important; visibility: visible !important;"></textarea>
                             </div>
 
                             <div class="col-md-6 form-group">
@@ -360,7 +402,8 @@ $loggedEmployee = \App\Models\Employee::find($loggedUser->id);
 
             const startDateInput = $('#start_date');
             const endDateInput = $('#end_date');
-            const totalDaysInput = $('#total_days');
+            const totalDaysSelect = $('#total_days');
+            const totalDaysReadonly = $('#total_days_readonly');
 
             startDateInput.on('change', function() {
                 getDateResult();
@@ -372,8 +415,10 @@ $loggedEmployee = \App\Models\Employee::find($loggedUser->id);
 
             const getDateResult = ()  => {
 
-                // Convert Date formate to YYYY-MM-DD
+                // Convert Date format to YYYY-MM-DD
                 if (!startDateInput.val() || !endDateInput.val()) {
+                    totalDaysSelect.hide().empty();
+                    totalDaysReadonly.hide();
                     return;
                 }
 
@@ -383,12 +428,19 @@ $loggedEmployee = \App\Models\Employee::find($loggedUser->id);
                 let startDate = new Date(startDateFormat);
                 let endDate = new Date(endDateFormat);
                 let timeDiff = endDate.getTime() - startDate.getTime();
-                // Convert the difference from milliseconds to days and update the totalDays input field
                 let totalDays = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
+
                 if (totalDays < 0) {
-                    totalDaysInput.val(0);
-                }else {
-                    totalDaysInput.val(totalDays);
+                    totalDays = 0;
+                }
+
+                if (startDate.getTime() === endDate.getTime()) {
+                    // Same day: show 0.5 and 1 day options (half-day support)
+                    totalDaysSelect.html('<option value="0.5">0.5 <?php echo e(__("Day")); ?></option><option value="1">1 <?php echo e(__("Day")); ?></option>').show();
+                    totalDaysReadonly.hide();
+                } else {
+                    totalDaysReadonly.val(totalDays).show();
+                    totalDaysSelect.hide().empty();
                 }
             }
 
@@ -476,11 +528,11 @@ $loggedEmployee = \App\Models\Employee::find($loggedUser->id);
         // Apply background only to total_days text
         if (totalDays === 0.5) {
             totalDaysHtml = '<div style="background-color: #FFF176; font-size:12px; padding: 3px; border-radius: 5px; display: inline-block; color:black;">' +
-                            '<?php echo e('Half Day'); ?> ' +
+                            '<?php echo e(__("Half Day")); ?>' +
                             '</div>';
         } else {
             totalDaysHtml = '<div style="background-color: #81C784; font-size:12px; padding: 3px; border-radius: 5px; display: inline-block; color:white;">' +
-                            '<?php echo e(trans('file.Total')); ?> ' + data.total_days + ' <?php echo e(trans('file.Days')); ?>' +
+                            '<?php echo e(trans("file.Total")); ?> ' + data.total_days + ' <?php echo e(trans("file.Days")); ?>' +
                             '</div>';
         }
 
@@ -588,11 +640,32 @@ $loggedEmployee = \App\Models\Employee::find($loggedUser->id);
             $('#action').val('<?php echo e(trans('file.Add')); ?>');
             $('#sample_form')[0].reset(); // Reset the form for new entry
             
+            // Ensure description field is visible and enabled for new entries
+            $('#leave_reason_container').show().css({
+                'display': 'block !important',
+                'visibility': 'visible !important'
+            });
+            $('#leave_reason').prop('disabled', false).show().val('').css({
+                'background-color': '',
+                'opacity': '1',
+                'cursor': 'text',
+                'display': 'block !important',
+                'visibility': 'visible !important',
+                'min-height': '60px'
+            });
+            $('label[for="leave_reason"]').show().css({
+                'display': 'block !important',
+                'visibility': 'visible !important'
+            });
+            
             // Explicitly enable all fields that might have been disabled in edit mode
             $('#leave_type').prop('disabled', false);
             $('#start_date').prop('disabled', false);
             $('#end_date').prop('disabled', false);
             $('#total_days').prop('disabled', false);
+            $('#total_days_readonly').prop('disabled', false);
+            totalDaysSelect.hide().empty();
+            totalDaysReadonly.hide();
             $('#leave_reason').prop('disabled', false);
             $('#is_notify').prop('disabled', false);
             $('#remarks').prop('disabled', false);
@@ -623,145 +696,178 @@ $loggedEmployee = \App\Models\Employee::find($loggedUser->id);
             
             $('#formModal').modal('show');
         });
+        
+        // Force description field visibility whenever modal is shown
+        $('#formModal').on('shown.bs.modal', function () {
+            // Remove any hiding classes
+            $('#leave_reason_container').removeClass('d-none hidden').show();
+            $('#leave_reason').removeClass('d-none hidden').show();
+            $('label[for="leave_reason"]').removeClass('d-none hidden').show();
+            
+            // Force visibility with inline styles
+            $('#leave_reason_container').css({
+                'display': 'block',
+                'visibility': 'visible',
+                'opacity': '1'
+            });
+            $('#leave_reason').css({
+                'display': 'block',
+                'visibility': 'visible',
+                'opacity': '1',
+                'min-height': '60px'
+            });
+            $('label[for="leave_reason"]').css({
+                'display': 'block',
+                'visibility': 'visible'
+            });
+            
+            console.log('Modal shown - Description field check:', {
+                containerVisible: $('#leave_reason_container').is(':visible'),
+                fieldVisible: $('#leave_reason').is(':visible'),
+                containerDisplay: $('#leave_reason_container').css('display'),
+                fieldDisplay: $('#leave_reason').css('display'),
+                fieldValue: $('#leave_reason').val()
+            });
+        });
 
         $('#sample_form').on('submit', function (event) {
-            event.preventDefault();
+       event.preventDefault();
 
-            // Remove any previously added hidden fields to prevent duplicates
-            $('#temp_company_id, #temp_department_id, #temp_employee_id, #temp_status, #temp_leave_type, #temp_start_date, #temp_end_date').remove();
+    // Remove any previously added hidden fields to prevent duplicates
+    $('#temp_company_id, #temp_department_id, #temp_employee_id, #temp_status, #temp_leave_type, #temp_start_date, #temp_end_date, #temp_leave_reason').remove();
 
-            // Only create hidden inputs if the fields are disabled (i.e., in Edit mode)
-            if ($('#company_id').prop('disabled')) {
-                $('#sample_form').append('<input type="hidden" name="company_id" id="temp_company_id" value="' + $('#company_id').val() + '">');
-            }
-            if ($('#department_id').prop('disabled')) {
-                $('#sample_form').append('<input type="hidden" name="department_id" id="temp_department_id" value="' + $('#department_id').val() + '">');
-            }
-            if ($('#employee_id').prop('disabled')) {
-                $('#sample_form').append('<input type="hidden" name="employee_id" id="temp_employee_id" value="' + $('#employee_id').val() + '">');
-            }
-            if ($('#status').prop('disabled')) {
-                $('#sample_form').append('<input type="hidden" name="status" id="temp_status" value="' + $('#status').val() + '">');
-            }
-            if ($('#leave_type').prop('disabled')) {
-                $('#sample_form').append('<input type="hidden" name="leave_type" id="temp_leave_type" value="' + $('#leave_type').val() + '">');
-            }
-            if ($('#start_date').prop('disabled')) {
-                $('#sample_form').append('<input type="hidden" name="start_date" id="temp_start_date" value="' + $('#start_date').val() + '">');
-            }
-            if ($('#end_date').prop('disabled')) {
-                $('#sample_form').append('<input type="hidden" name="end_date" id="temp_end_date" value="' + $('#end_date').val() + '">');
-            }
+    // Capture the current status value ONCE before anything else
+    let currentStatus = $('#status').val();
+    console.log('🟡 Status captured on submit:', currentStatus);
 
-            if ($('#action').val() == '<?php echo e(trans('file.Add')); ?>') {
+    // Always inject status as hidden field (selectpicker disabled fields get lost)
+    $('#sample_form').append('<input type="hidden" name="status" id="temp_status" value="' + currentStatus + '">');
 
-                let start_date = $("#start_date").datepicker('getDate');
-                let end_date = $("#end_date").datepicker('getDate');
-                let dayDiff = Math.ceil((end_date - start_date) / (1000 * 60 * 60 * 24)) + 1;
-                $('#diff_date_hidden').val(dayDiff);
+    // Other disabled fields
+    if ($('#company_id').prop('disabled')) {
+        $('#sample_form').append('<input type="hidden" name="company_id" id="temp_company_id" value="' + $('#company_id').val() + '">');
+    }
+    if ($('#department_id').prop('disabled')) {
+        $('#sample_form').append('<input type="hidden" name="department_id" id="temp_department_id" value="' + $('#department_id').val() + '">');
+    }
+    if ($('#employee_id').prop('disabled')) {
+        $('#sample_form').append('<input type="hidden" name="employee_id" id="temp_employee_id" value="' + $('#employee_id').val() + '">');
+    }
+    if ($('#leave_type').prop('disabled')) {
+        $('#sample_form').append('<input type="hidden" name="leave_type" id="temp_leave_type" value="' + $('#leave_type').val() + '">');
+    }
+    if ($('#start_date').prop('disabled')) {
+        $('#sample_form').append('<input type="hidden" name="start_date" id="temp_start_date" value="' + $('#start_date').val() + '">');
+    }
+    if ($('#end_date').prop('disabled')) {
+        $('#sample_form').append('<input type="hidden" name="end_date" id="temp_end_date" value="' + $('#end_date').val() + '">');
+    }
+    if ($('#leave_reason').prop('disabled')) {
+        let leaveReasonValue = $('#leave_reason').val() || '';
+        let encodedValue = $('<div>').text(leaveReasonValue).html();
+        $('#sample_form').append('<input type="hidden" name="leave_reason" id="temp_leave_reason" value="' + encodedValue + '">');
+    }
 
-                //console.log(dayDiff);
+    if ($('#action').val() == '<?php echo e(trans('file.Add')); ?>') {
 
+        let start_date = $("#start_date").datepicker('getDate');
+        let end_date = $("#end_date").datepicker('getDate');
+        let dayDiff;
+        if ($('#total_days').is(':visible') && $('#total_days').val()) {
+            dayDiff = parseFloat($('#total_days').val());
+        } else {
+            dayDiff = Math.ceil((end_date - start_date) / (1000 * 60 * 60 * 24)) + 1;
+        }
+        $('#diff_date_hidden').val(dayDiff);
 
-                $.ajax({
-                    url: "<?php echo e(route('leaves.store')); ?>",
-                    method: "POST",
-                    data: new FormData(this),
-                    contentType: false,
-                    cache: false,
-                    processData: false,
-                    dataType: "json",
-                    success: function (data) {
-                        console.log(data);
-                        let html = '';
-                        if (data.errors) {
-                            html = '<div class="alert alert-danger">';
-                            for (let count = 0; count < data.errors.length; count++) {
-                                html += '<p>' + data.errors[count] + '</p>';
-                            }
-                            html += '</div>';
-                        }
-                        if (data.limit) {
-                            html = '<div class="alert alert-danger">' + data.limit + '</div>';
-                        }
-                        if (data.remaining_leave) {
-                            html = '<div class="alert alert-danger">' + data.remaining_leave + '</div>';
-                        }
-                        if (data.error) {
-                            html = '<div class="alert alert-danger">' + data.error + '</div>';
-                        }
-                        if (data.success) {
-                            html = '<div class="alert alert-success">' + data.success + '</div>';
-                            $('#sample_form')[0].reset();
-                            $('select').selectpicker('refresh');
-                            $('.date').datepicker('update');
-                            $('#leave-table').DataTable().ajax.reload();
-                        }
-                        location.reload();
-                        $('#form_result').html(html).slideDown(300).delay(5000).slideUp(300);
+        var formDataAdd = new FormData(this);
+        var debugDataAdd = {};
+        formDataAdd.forEach(function (value, key) { debugDataAdd[key] = value; });
+        console.log('Leave form submit (Add) – data being sent:', debugDataAdd);
+
+        $.ajax({
+            url: "<?php echo e(route('leaves.update')); ?>",
+            method: "POST",
+            data: formDataAdd,
+            contentType: false,
+            cache: false,
+            processData: false,
+            dataType: "json",
+            success: function (data) {
+                let html = '';
+                if (data.errors) {
+                    html = '<div class="alert alert-danger">';
+                    for (let count = 0; count < data.errors.length; count++) {
+                        html += '<p>' + data.errors[count] + '</p>';
                     }
-                })
-            }
-
-            if ($('#action').val() == '<?php echo e(trans('file.Edit')); ?>') {
-
-                // Keep start_date disabled in edit mode; submit via hidden field when needed
-                var totalDays = $('#total_days').val();
-                $('#diff_date_hidden').val(totalDays);
-                $.ajax({
-                    url: "<?php echo e(route('leaves.update')); ?>",
-                    method: "POST",
-                    data: new FormData(this),
-                    contentType: false,
-                    cache: false,
-                    processData: false,
-                    dataType: "json",
-                    success: function (data) {
-                        console.log(data);
-                        let html = '';
-                        if (data.errors) {
-                            html = '<div class="alert alert-danger">';
-                            for (let count = 0; count < data.errors.length; count++) {
-                                html += '<p>' + data.errors[count] + '</p>';
-                            }
-                            html += '</div>';
-                        }
-                        if (data.limit) {
-                            html = '<div class="alert alert-danger">' + data.limit + '</div>';
-                        }
-                        if (data.remaining_leave) {
-                            html = '<div class="alert alert-danger">' + data.remaining_leave + '</div>';
-                        }
-                        if (data.error) {
-                            html = '<div class="alert alert-danger">' + data.error + '</div>';
-                        }
-                        if (data.success) {
-                            html = '<div class="alert alert-success">' + data.success + '</div>';
-                            setTimeout(function () {
-                                $('#formModal').modal('hide');
-                                $('.date').datepicker('update');
-                                $('select').selectpicker('refresh');
-                                $('#leave-table').DataTable().ajax.reload();
-                                $('#sample_form')[0].reset();
-                            }, 2000);
-
-                        }
-                        location.reload();
-                        $('#form_result').html(html).slideDown(300).delay(5000).slideUp(300);
-                    },
-                    complete: function() {
-                        // Remove temporary hidden fields after AJAX request completes
-                        $('#temp_company_id, #temp_department_id, #temp_employee_id, #temp_status').remove();
-
-                        // Restore original disabled states for selectpickers (if they were disabled)
-                        $('#company_id').prop('disabled', companyDisabled).selectpicker('refresh');
-                        $('#department_id').prop('disabled', departmentDisabled).selectpicker('refresh');
-                        $('#employee_id').prop('disabled', employeeDisabled).selectpicker('refresh');
-                        $('#status').prop('disabled', statusDisabled).selectpicker('refresh');
-                    }
-                });
+                    html += '</div>';
+                }
+                if (data.limit) { html = '<div class="alert alert-danger">' + data.limit + '</div>'; }
+                if (data.remaining_leave) { html = '<div class="alert alert-danger">' + data.remaining_leave + '</div>'; }
+                if (data.error) { html = '<div class="alert alert-danger">' + data.error + '</div>'; }
+                if (data.success) {
+                    html = '<div class="alert alert-success">' + data.success + '</div>';
+                    $('#sample_form')[0].reset();
+                    $('select').selectpicker('refresh');
+                    $('.date').datepicker('update');
+                    $('#leave-table').DataTable().ajax.reload();
+                }
+                location.reload();
+                $('#form_result').html(html).slideDown(300).delay(5000).slideUp(300);
             }
         });
+    }
+
+    if ($('#action').val() == '<?php echo e(trans('file.Edit')); ?>') {
+
+        var totalDays = $('#total_days').is(':visible') ? $('#total_days').val() : $('#total_days_readonly').val();
+        $('#diff_date_hidden').val(totalDays);
+
+        var formDataEdit = new FormData(this);
+        var debugDataEdit = {};
+        formDataEdit.forEach(function (value, key) { debugDataEdit[key] = value; });
+        console.log('Leave form submit (Edit) – data being sent:', debugDataEdit);
+        console.log('🔵 Status in FormData:', debugDataEdit['status']);
+
+        $.ajax({
+            url: "<?php echo e(route('leaves.update')); ?>",
+            method: "POST",
+            data: formDataEdit,
+            contentType: false,
+            cache: false,
+            processData: false,
+            dataType: "json",
+            success: function (data) {
+                let html = '';
+                if (data.errors) {
+                    html = '<div class="alert alert-danger">';
+                    for (let count = 0; count < data.errors.length; count++) {
+                        html += '<p>' + data.errors[count] + '</p>';
+                    }
+                    html += '</div>';
+                }
+                if (data.limit) { html = '<div class="alert alert-danger">' + data.limit + '</div>'; }
+                if (data.remaining_leave) { html = '<div class="alert alert-danger">' + data.remaining_leave + '</div>'; }
+                if (data.error) { html = '<div class="alert alert-danger">' + data.error + '</div>'; }
+                if (data.success) {
+                    html = '<div class="alert alert-success">' + data.success + '</div>';
+                    setTimeout(function () {
+                        $('#formModal').modal('hide');
+                        $('.date').datepicker('update');
+                        $('select').selectpicker('refresh');
+                        $('#leave-table').DataTable().ajax.reload();
+                        $('#sample_form')[0].reset();
+                    }, 2000);
+                }
+                location.reload();
+                $('#form_result').html(html).slideDown(300).delay(5000).slideUp(300);
+            },
+            complete: function () {
+                $('#temp_company_id, #temp_department_id, #temp_employee_id, #temp_status, #temp_leave_type, #temp_start_date, #temp_end_date, #temp_leave_reason').remove();
+            }
+        });
+    }
+});
 
         $(document).on('click', '.show_new', function () {
 
@@ -787,9 +893,11 @@ $loggedEmployee = \App\Models\Employee::find($loggedUser->id);
                     $('#leave_reason_id').html(result.data.leave_reason);
                     $('#remarks_id').html(result.data.remarks);
 
-                    if (result.data.is_half == 1)
+                    // Check if total_days is 0.5 to determine half day
+                    let totalDays = parseFloat(result.data.total_days);
+                    if (totalDays === 0.5 || result.data.is_half == 1) {
                         $('#is_half_id').html('Yes');
-                    else {
+                    } else {
                         $('#is_half_id').html('No');
                     }
                     if (result.data.is_notify == 1)
@@ -810,6 +918,19 @@ $loggedEmployee = \App\Models\Employee::find($loggedUser->id);
 
             let id = $(this).attr('id');
             $('#form_result').html('');
+
+            // IMMEDIATELY ensure description field is visible before any AJAX call
+            $('#leave_reason_container').show().removeClass('d-none hidden').css({
+                'display': 'block',
+                'visibility': 'visible',
+                'opacity': '1'
+            });
+            $('#leave_reason').show().removeClass('d-none hidden').css({
+                'display': 'block',
+                'visibility': 'visible',
+                'opacity': '1'
+            });
+            $('label[for="leave_reason"]').show().removeClass('d-none hidden');
 
             let target = "<?php echo e(route('leaves.index')); ?>/" + id + '/edit';
 
@@ -879,8 +1000,68 @@ $('#status, #status_heading').parent().show();
 
 
                     // Set values for all fields
-                    $('#remarks').val(html.data.remarks);
-                    $('#leave_reason').val(html.data.leave_reason);
+                    $('#remarks').val(html.data.remarks || '');
+                    
+                    // Ensure description field is visible FIRST
+                    $('#leave_reason_container').show().css({
+                        'display': 'block',
+                        'visibility': 'visible'
+                    });
+                    $('#leave_reason').show().css({
+                        'display': 'block',
+                        'visibility': 'visible',
+                        'opacity': '1',
+                        'min-height': '60px'
+                    });
+                    $('label[for="leave_reason"]').show().css({
+                        'display': 'block',
+                        'visibility': 'visible'
+                    });
+                    
+                    // Get leave_reason value - check multiple possible locations
+                    let leaveReason = html.data.leave_reason || 
+                                    html.data.leaveReason || 
+                                    html.leave_reason || 
+                                    '';
+                    
+                    console.log('=== LEAVE REASON DEBUG ===');
+                    console.log('html.data:', html.data);
+                    console.log('html.data.leave_reason:', html.data.leave_reason);
+                    console.log('leaveReason variable:', leaveReason);
+                    console.log('Type of leaveReason:', typeof leaveReason);
+                    
+                    // Set the value using multiple methods
+                    if (leaveReason) {
+                        // Method 1: jQuery val()
+                        $('#leave_reason').val(leaveReason);
+                        
+                        // Method 2: Direct DOM property
+                        var textareaElement = document.getElementById('leave_reason');
+                        if (textareaElement) {
+                            textareaElement.value = leaveReason;
+                            // Also set innerHTML as fallback
+                            textareaElement.innerHTML = leaveReason;
+                        }
+                        
+                        // Method 3: jQuery text() for textarea
+                        $('#leave_reason').text(leaveReason);
+                        
+                        console.log('Value set using multiple methods');
+                    } else {
+                        console.warn('leaveReason is empty or undefined!');
+                    }
+                    
+                    // Verify immediately
+                    console.log('Immediate check - jQuery val():', $('#leave_reason').val());
+                    console.log('Immediate check - DOM value:', document.getElementById('leave_reason')?.value);
+                    
+                    // Verify after a short delay
+                    setTimeout(function() {
+                        console.log('Delayed check - jQuery val():', $('#leave_reason').val());
+                        console.log('Delayed check - DOM value:', document.getElementById('leave_reason')?.value);
+                        console.log('Field visible:', $('#leave_reason').is(':visible'));
+                    }, 200);
+                    
                     $('#leave_type').selectpicker('val', html.data.leave_type_id);
 
                     // Handle Company dropdown
@@ -913,7 +1094,15 @@ $('#status, #status_heading').parent().show();
 
                     $('#start_date').val(html.data.start_date);
                     $('#end_date').val(html.data.end_date);
-                    $('#total_days').val(html.data.total_days);
+
+                    var totalDaysVal = parseFloat(html.data.total_days);
+                    if (totalDaysVal === 0.5 || totalDaysVal === 1) {
+                        $('#total_days').html('<option value="0.5">0.5 <?php echo e(__("Day")); ?></option><option value="1">1 <?php echo e(__("Day")); ?></option>').val(String(totalDaysVal)).show().prop('disabled', true);
+                        $('#total_days_readonly').hide();
+                    } else {
+                        $('#total_days_readonly').val(html.data.total_days).show();
+                        $('#total_days').hide().empty();
+                    }
 
                     // Disable all fields except remarks and status
                     $('#leave_type').prop('disabled', true).selectpicker('refresh');
@@ -925,8 +1114,24 @@ $('#status, #status_heading').parent().show();
                     $('#start_date').prop('disabled', true);
                     $('#end_date').prop('disabled', true);
                     }
-                    $('#total_days').prop('disabled', true);
-                    $('#leave_reason').prop('disabled', true);
+                    $('#total_days_readonly').prop('disabled', true);
+                    // Keep description field visible but disabled (read-only) so user can see the content
+                    $('#leave_reason_container').show().css({
+                        'display': 'block !important',
+                        'visibility': 'visible !important'
+                    });
+                    $('#leave_reason').prop('disabled', true).css({
+                        'background-color': '#f5f5f5',
+                        'opacity': '1',
+                        'cursor': 'not-allowed',
+                        'display': 'block !important',
+                        'visibility': 'visible !important',
+                        'min-height': '60px'
+                    });
+                    $('label[for="leave_reason"]').show().css({
+                        'display': 'block !important',
+                        'visibility': 'visible !important'
+                    });
                     $('#is_notify').prop('disabled', true);
 
                     // Keep remarks and status enabled (status is already handled above)
@@ -950,7 +1155,63 @@ $('#status, #status_heading').parent().show();
                     $('.modal-title').text('Submit Leave');
                     $('#action_button').val('Submit');
                     $('#action').val('<?php echo e(trans('file.Edit')); ?>');
+                    
+                    // Store leave_reason value for later use
+                    let storedLeaveReason = html.data.leave_reason || '';
+                    
+                    // Final check to ensure description field is visible and value is set before showing modal
+                    setTimeout(function() {
+                        // Re-set the value in case it was cleared
+                        $('#leave_reason').val(storedLeaveReason);
+                        var textareaEl = document.getElementById('leave_reason');
+                        if (textareaEl) {
+                            textareaEl.value = storedLeaveReason;
+                        }
+                        
+                        $('#leave_reason_container').css({
+                            'display': 'block',
+                            'visibility': 'visible',
+                            'opacity': '1'
+                        });
+                        $('#leave_reason').css({
+                            'display': 'block',
+                            'visibility': 'visible',
+                            'opacity': '1',
+                            'min-height': '60px'
+                        });
+                        $('label[for="leave_reason"]').css({
+                            'display': 'block',
+                            'visibility': 'visible'
+                        });
+                        console.log('Before modal show - Description field check:', {
+                            container: $('#leave_reason_container').is(':visible'),
+                            field: $('#leave_reason').is(':visible'),
+                            value: $('#leave_reason').val(),
+                            storedValue: storedLeaveReason
+                        });
+                    }, 100);
+                    
                     $('#formModal').modal('show');
+                    
+                    // One more check after modal is fully shown - use one() to prevent multiple bindings
+                    $('#formModal').off('shown.bs.modal').on('shown.bs.modal', function() {
+                        // Re-set the value after modal is fully rendered
+                        $('#leave_reason').val(storedLeaveReason);
+                        var textareaEl = document.getElementById('leave_reason');
+                        if (textareaEl) {
+                            textareaEl.value = storedLeaveReason;
+                            // Force a re-render
+                            textareaEl.dispatchEvent(new Event('input', { bubbles: true }));
+                        }
+                        console.log('After modal shown - Setting leave_reason to:', storedLeaveReason);
+                        console.log('After modal shown - Current value:', $('#leave_reason').val());
+                        
+                        // One more check after a delay
+                        setTimeout(function() {
+                            $('#leave_reason').val(storedLeaveReason);
+                            console.log('Final check - leave_reason value:', $('#leave_reason').val());
+                        }, 300);
+                    });
                 }
             })
         });
@@ -1017,6 +1278,17 @@ $('#status, #status_heading').parent().show();
 
         // Function to reset form to default values
         function resetFormToDefaults() {
+            // Ensure description field is visible before reset
+            $('#leave_reason_container').show().css({
+                'display': 'block',
+                'visibility': 'visible'
+            });
+            $('#leave_reason').show().css({
+                'display': 'block',
+                'visibility': 'visible'
+            });
+            $('label[for="leave_reason"]').show();
+            
             $('#sample_form')[0].reset();
             
             // Restore original dropdown options for company

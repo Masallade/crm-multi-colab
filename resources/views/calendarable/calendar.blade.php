@@ -133,8 +133,9 @@
                 let start_date = $("#leave_start_date").datepicker('getDate');
                 let end_date = $("#leave_end_date").datepicker('getDate');
                 let dayDiff = Math.ceil((end_date - start_date) / (1000 * 60 * 60 * 24)) + 1;
-
-                $('#diff_date_hidden').val(dayDiff);
+                // Store duration in minutes (leaves.total_days column)
+                let totalMinutes = dayDiff * 1440;
+                $('#diff_date_hidden').val(totalMinutes);
 
 
                 $.ajax({

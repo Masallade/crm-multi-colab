@@ -45,7 +45,7 @@ return data.leave_type + "<br><td><div class = 'badge badge-success'>"+data.stat
                     render: function ( data) {
 
                         return data.start_date + ' to ' + data.end_date
-                            + "<br>" +' Total '+ data.total_days + ' Days ' ;
+                            + "<br>" + (data.total_days_display || ('Total ' + data.total_days + ' min'));
 
 
                     }
@@ -106,15 +106,17 @@ $('#leave_employee_id_show').html(result.employee_name);
             $('#leave_department_id_show').html(result.department);
             $('#leave_start_date_id').html(result.start_date_name);
             $('#leave_end_date_id').html(result.end_date_name);
-            $('#leave_applied_date_id').html(result.data.created_at);
-            $('#leave_total_days_id').html(result.data.total_days);
+            $('#leave_applied_date_id').html(result.data.created_at_formatted || result.data.created_at);
+            $('#leave_total_days_id').html(result.data.total_days_display || result.data.total_days);
             $('#leave_status_id').html(result.data.status);
             $('#leave_leave_reason_id').html(result.data.leave_reason);
             $('#leave_remarks_id').html(result.data.remarks);
 
-            if (result.data.is_half==1)
+            // Check if half day (720 minutes)
+            let totalMins = parseInt(result.data.total_days, 10) || 0;
+            if (totalMins === 720 || result.data.is_half == 1) {
                 $('#leave_is_half_id').html('Yes');
-            else{
+            } else {
                 $('#leave_is_half_id').html('No');
             }
             if (result.data.is_notify==1)

@@ -1,7 +1,6 @@
-
 <?php $__env->startSection('content'); ?>
     <div class="container mt-5">
-        <h1 class="mb-4">Exe Working Report</h1>
+        <h1 class="mb-4"><?php echo e(request()->is('streaming*') ? __('Streaming') : __('Exe Working Report')); ?></h1>
         <form id="exe-working-search-form" method="GET" action="" class="mb-4">
             <div class="row">
                 <div class="col-md-6 mb-2">
@@ -19,6 +18,7 @@
                         <option value="Inactive" <?php echo e((request('status', $status ?? '') == 'Inactive') ? 'selected' : ''); ?>>Inactive</option>
                     </select>
                 </div>
+                <?php if(!request()->is('streaming*')): ?>
                 <div class="col-md-3 mb-2">
                     <div class="input-daterange input-group">
                         <input type="date" class="form-control" id="start_date" name="start_date" value="<?php echo e(request('start_date')); ?>" placeholder="Start date">
@@ -26,10 +26,15 @@
                         <input type="date" class="form-control" id="end_date" name="end_date" value="<?php echo e(request('end_date')); ?>" placeholder="End date">
                     </div>
                 </div>
+                <?php endif; ?>
             </div>
         </form>
         <div id="employee-grid">
-            <?php echo $__env->make('streaming._employee_grid', ['employees' => $employees, 'hide_stream_button' => true], \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
+            <?php echo $__env->make('streaming._employee_grid', [
+                'employees' => $employees,
+                // Hide stream button unless we're on a streaming* route
+                'hide_stream_button' => !request()->is('streaming*')
+            ], \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
         </div>
     </div>
 
@@ -48,8 +53,12 @@
         document.getElementById('status').addEventListener('change', function() {
             fetchGrid();
         });
-        document.getElementById('start_date').addEventListener('change', fetchGrid);
-        document.getElementById('end_date').addEventListener('change', fetchGrid);
+        <?php if(!request()->is('streaming*')): ?>
+        const startDate = document.getElementById('start_date');
+        const endDate = document.getElementById('end_date');
+        if (startDate) startDate.addEventListener('change', fetchGrid);
+        if (endDate) endDate.addEventListener('change', fetchGrid);
+        <?php endif; ?>
         
         function fetchGrid() {
             const formData = new FormData(form);
