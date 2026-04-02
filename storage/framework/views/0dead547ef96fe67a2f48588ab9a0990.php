@@ -411,6 +411,13 @@
                 var filter_company = $('#company_id').val();
                 var filter_employee = $('#employee_id').val();
                 var filter_month_year = $('#month_year').val();
+                
+                console.log('Form submission:', {
+                    company: filter_company,
+                    employee: filter_employee,
+                    month_year: filter_month_year
+                });
+                
                 if (filter_company !== '' && filter_month_year !== '') {
                     $('#month_wise_attendance-table').DataTable().destroy();
                     fill_datatable(filter_company, filter_employee, filter_month_year);
@@ -434,10 +441,13 @@
                     data:{ value:value, _token:_token, first_name:first_name,last_name:last_name},
                     success:function(result)
                     {
-                        $('select').selectpicker("destroy");
-                        $('#employee_id').html(result);
-                        $('select').selectpicker();
-
+                        // Clear and repopulate employee dropdown
+                        $('#employee_id').empty();
+                        $('#employee_id').append(result);
+                        $('#employee_id').selectpicker('refresh');
+                    },
+                    error: function(xhr, status, error) {
+                        console.log('Error loading employees:', error);
                     }
                 });
             }

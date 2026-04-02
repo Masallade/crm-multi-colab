@@ -1608,9 +1608,9 @@ protected function returnOvertimeOrEarlyLeaving($shift_out, $clock_out, $selecte
             // Check if the employee_ids parameter is present and is an array or a comma-separated string
             $employee_ids = $request->employee_ids ? explode(',', $request->employee_ids) : [];
 
-            // Remove current user ID and "all" from the array
-            $employee_ids = array_filter($employee_ids, function ($id) use ($logged_user) {
-                return $id != $logged_user->id && strtolower($id) !== 'all';
+            // Remove only "all" from the array, keep all actual employee IDs
+            $employee_ids = array_filter($employee_ids, function ($id) {
+                return strtolower(trim($id)) !== 'all' && !empty(trim($id));
             });
 
 // dd($employee_ids);

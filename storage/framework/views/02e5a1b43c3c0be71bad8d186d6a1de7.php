@@ -19,8 +19,8 @@
                                     
 
                                     <?php
-                                        $hideCard = in_array(auth()->user()->role_users_id, [2, 3, 4, 5]) ? 'd-none' : '';
-                                        $class = in_array(auth()->user()->role_users_id, [2, 3, 4, 5]) ? 'col-md-6' : 'col-md-4';
+                                        $hideCard = in_array(auth()->user()->role_users_id, [2, 4]) ? 'd-none' : '';
+                                        $class = in_array(auth()->user()->role_users_id, [2, 4]) ? 'col-md-6' : 'col-md-4';
                                     ?>
 
                                         <div class="col-md-3">
@@ -48,23 +48,17 @@
                                             </select>
                                         </div> -->
 
-                                        <?php if(!in_array(auth()->user()->role_users_id, [2, 3, 5])): ?>
                                         <div class="col-md-3 form-group">
-                                            <!-- <label><?php echo e(trans('file.Employee')); ?> </label>
-                                            <select name="employee_id" id="employee_id"  class="selectpicker form-control"
-                                                    data-live-search="true" data-live-search-style="contains"
+                                            <label><?php echo e(trans('file.Employee')); ?></label>
+                                                <small id="clearAllButton" style="margin-left: 10px; color: red; cursor: pointer; font-size: 10px;">Clear All <i class="fa fa-times"></i></small>
+                                                <select name="employee_id[]" id="employee_id" class="selectpicker form-control"
+                                                    multiple data-live-search="true" data-live-search-style="contains"
+                                                    data-actions-box="true" data-select-all-text="Select All" data-deselect-all-text="Deselect All"
                                                     title='<?php echo e(__('Selecting',['key'=>trans('file.Employee')])); ?>...'>
-                                            </select> -->
-                                            <label><?php echo e(trans('file.Employee')); ?></label><small id="clearAllButton" >Clear All <i class="fa fa-times"></i> </small>
-                                            <select name="employee_id[]" id="employee_id" class="selectpicker form-control"
-                                                multiple data-live-search="true" data-live-search-style="contains"
-                                                title='<?php echo e(__('Selecting',['key'=>trans('file.Employee')])); ?>...'>
-                                                <option value="all">Select All</option> <!-- Select All option -->
-                                            </select>
+                                                    <option value="all">Select All</option>
+                                                </select>
+                                            
                                         </div>
-                                        <?php else: ?>
-                                            <input type="hidden" name="employee_id" id="employee_id" value="<?php echo e(Auth::user()->id); ?>">
-                                        <?php endif; ?>
 
                                     <?php else: ?>
                                         <input type="hidden" name="employee_id" id="employee_id" value="<?php echo e(Auth::user()->id); ?>"> 
@@ -188,8 +182,7 @@
                             filter_end_date: filter_end_date,
                             company_id: company_id,
                             department_id: department_id,
-                            // employee_id: employee_id,
-                            employee_ids: employee_ids.join(','), // Pass as a comma-separated string
+                            employee_ids: Array.isArray(employee_ids) ? employee_ids.join(',') : '', // Pass as comma-separated string
                             "_token": "<?php echo e(csrf_token()); ?>"
                         }
                     },
@@ -385,30 +378,69 @@
                 var filter_end_date = $('#end_date').val();
                 let company_id = $('#company_id').val();
                 let department_id = $('#department_id').val();
-                let employee_id = $('#employee_id').val();
+                let employee_ids = $('#employee_id').val() || []; 
+                
+                // Handle both single and multi-select cases
+                if (!Array.isArray(employee_ids)) {
+                    employee_ids = employee_ids ? [employee_ids] : [];
+                }
+                
+                // Remove 'all' from the array if it exists
+                employee_ids = employee_ids.filter(id => id !== 'all');
+                
+                // Debug logging
+                console.log('Form submission debug:', {
+                    isMultiple: $('#employee_id').prop('multiple'),
+                    rawEmployeeIds: $('#employee_id').val(),
+                    processedEmployeeIds: employee_ids,
+                    company_id: company_id,
+                    start_date: filter_start_date,
+                    end_date: filter_end_date
+                });
+                
                 if (filter_start_date !== '' && filter_end_date !== '' && company_id !== '') {
                     $('#date_wise_attendance-table').DataTable().destroy();
-                    fill_datatable(filter_start_date, filter_end_date, company_id, department_id, employee_id);
+                    fill_datatable(filter_start_date, filter_end_date, company_id, department_id, employee_ids);
                 } else {
                     alert('<?php echo e(__('Select Both filter option')); ?>');
                 }
             });
 
 
-            // ✅ Handle "Select All" in Bootstrap Select
+            // ✅ Handle "Select All" in Bootstrap Select (only for multi-select)
             $(document).on('changed.bs.select', '#employee_id', function () {
-                let selectedValues = $(this).val();
+                // Only handle multi-select logic if the dropdown has multiple attribute
+                if ($(this).prop('multiple')) {
+                    let selectedValues = $(this).val() || [];
 
-                if (selectedValues && selectedValues.includes('all')) {
-                    $('#employee_id option').prop('selected', true);
+                    if (selectedValues.includes('all')) {
+                        // If "Select All" is chosen, select all options except "all"
+                        $('#employee_id option:not([value="all"])').prop('selected', true);
+                        $('#employee_id option[value="all"]').prop('selected', false);
+                        $('#employee_id').selectpicker('refresh');
+                    }
+                }
+            });
+
+            // Attach the click event to the "Clear All" button (only show for multi-select)
+            $('#clearAllButton').on('click', function() {
+                if ($('#employee_id').prop('multiple')) {
+                    $('#employee_id').selectpicker('deselectAll');
                     $('#employee_id').selectpicker('refresh');
                 }
             });
-            // Attach the click event to the "Clear All" button
-            $('#clearAllButton').on('click', function() {
-                $('#employee_id').selectpicker('deselectAll');
-                $('#employee_id').selectpicker('refresh');
-            });
+
+            // Show/hide Clear All button based on multi-select
+            function toggleClearAllButton() {
+                if ($('#employee_id').prop('multiple')) {
+                    $('#clearAllButton').show();
+                } else {
+                    $('#clearAllButton').hide();
+                }
+            }
+
+            // Initialize Clear All button visibility
+            toggleClearAllButton();
 
             $('.dynamic').change(function () {
                 if ($(this).val() !== '') {
@@ -422,8 +454,22 @@
                         method: "POST",
                         data: { value: value, _token: _token, first_name: first_name, last_name: last_name },
                         success: function (result) {
-                            $('#employee_id').html('<option value="all">Select All</option>' + result);
+                            // Clear and repopulate employee dropdown
+                            $('#employee_id').empty();
+                            
+                            // Add "Select All" option only for multi-select (admin/HR roles)
+                            if ($('#employee_id').prop('multiple')) {
+                                $('#employee_id').append('<option value="all">Select All</option>');
+                            }
+                            
+                            $('#employee_id').append(result);
                             $('#employee_id').selectpicker('refresh');
+                            
+                            // Update Clear All button visibility
+                            toggleClearAllButton();
+                        },
+                        error: function(xhr, status, error) {
+                            console.log('Error loading employees:', error);
                         }
                     });
                 }
@@ -497,12 +543,32 @@
 
     #clearAllButton {
         color: red;
-        right: 0; /* Align the icon to the right */
-        top: 50%;
-        transform: translateY(-50%); /* Center the icon vertically */
-        margin-left: 15px;
+        margin-left: 10px;
         cursor: pointer;
-        font-size: 10px; /* Adjust icon size if needed */
+        font-size: 10px;
+        display: none; /* Hidden by default */
+    }
+    
+    /* Show Clear All button only for multi-select dropdowns */
+    .bootstrap-select[data-multiple="true"] ~ #clearAllButton {
+        display: inline !important;
+    }
+    
+    /* Enhanced multi-select styling */
+    .bootstrap-select .dropdown-menu {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    
+    /* Style for actions box (Select All / Deselect All buttons) */
+    .bootstrap-select .bs-actionsbox {
+        padding: 4px 8px;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .bootstrap-select .bs-actionsbox .btn-group button {
+        font-size: 12px;
+        padding: 2px 8px;
     }
 
     </style>
